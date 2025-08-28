@@ -232,9 +232,11 @@
             .timezone-item-text {
                 flex-grow: 1;
                 flex-shrink: 1;
-                min-width: auto;
                 padding-right: 0;
                 margin-bottom: 0.5rem;
+            }
+            .pin-btn {
+                margin-bottom: 0.5rem; /* Add some space between pin and text */
             }
             .delete-btn {
                 margin-top: 0.5rem;
@@ -325,7 +327,10 @@
             let draggedItem = null;
             let activeSuggestionIndex = -1;
             let sourceActiveSuggestionIndex = -1; // New index for the source suggestions
-            
+            let touchStartX = 0;
+            let touchStartY = 0;
+            let touchMoved = false;
+
             // Map of common abbreviations to a representative full timezone name
             const abbreviationMap = {
                 'IST': 'Asia/Kolkata',
@@ -526,7 +531,7 @@
                         `;
 
                         const textDiv = document.createElement('div');
-                        textDiv.className = 'timezone-item-text flex-grow flex-shrink min-w-0 sm:pr-4 pr-0';
+                        textDiv.className = 'timezone-item-text flex-grow flex-shrink sm:pr-4 pr-0';
                         const strongTag = document.createElement('strong');
                         strongTag.textContent = tzObj.label;
                         const pTag = document.createElement('p');
@@ -552,7 +557,8 @@
                         timezoneItem.appendChild(textDiv);
                         timezoneItem.appendChild(removeBtn);
 
-                        removeBtn.addEventListener('click', () => removeTimezone(tzObj.label));
+                        // No longer adding event listeners inside the loop
+                        // removeBtn.addEventListener('click', () => removeTimezone(tzObj.label));
                         pinBtn.addEventListener('click', () => togglePin(tzObj.label));
 
                         timezoneListContainer.appendChild(timezoneItem);
@@ -712,10 +718,55 @@
                 }
             });
 
+            // Touch-based drag and drop logic
+            timezoneListContainer.addEventListener('touchstart', (e) => {
+                draggedItem = e.target.closest('.timezone-item');
+                if (!draggedItem || draggedItem.dataset.isPinned === 'true') return;
+                e.preventDefault(); // Prevents default touch behavior like scrolling
+                touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY;
+                touchMoved = false;
+                draggedItem.classList.add('dragging');
+            }, { passive: false });
+
+            timezoneListContainer.addEventListener('touchmove', (e) => {
+                if (!draggedItem) return;
+                e.preventDefault();
+                touchMoved = true;
+                const touch = e.touches[0];
+                const target = document.elementFromPoint(touch.clientX, touch.clientY);
+                const list = timezoneListContainer;
+
+                const newTarget = target.closest('.timezone-item');
+
+                if (newTarget && newTarget !== draggedItem) {
+                    const rect = newTarget.getBoundingClientRect();
+                    const next = (touch.clientY - rect.top) / (rect.bottom - rect.top) > .5;
+                    
+                    if (draggedItem.dataset.isPinned !== newTarget.dataset.isPinned) return;
+
+                    if (next) {
+                        list.insertBefore(draggedItem, newTarget.nextElementSibling);
+                    } else {
+                        list.insertBefore(draggedItem, newTarget);
+                    }
+                }
+            }, { passive: false });
+
+            timezoneListContainer.addEventListener('touchend', (e) => {
+                if (!draggedItem) return;
+                draggedItem.classList.remove('dragging');
+                if (touchMoved) {
+                    updateSavedOrder();
+                }
+                draggedItem = null;
+                touchMoved = false;
+            });
+            
             // Function to update the order in the savedTimezones array based on the DOM
             const updateSavedOrder = () => {
                 const itemsInDom = Array.from(timezoneListContainer.children).filter(el => el.classList.contains('timezone-item'));
-                const newOrder = itemsInDom.map(label => savedTimezones.find(tz => tz.label === label));
+                const newOrder = itemsInDom.map(item => item.dataset.label);
                 
                 const newSavedTimezones = newOrder.map(label => savedTimezones.find(tz => tz.label === label));
                 savedTimezones = newSavedTimezones;
@@ -839,6 +890,7 @@
                         suggestionItem.textContent = tz.label;
                         suggestionItem.dataset.timezone = tz.timezone;
                         suggestionItem.classList.add('source-suggestions-item');
+                        // Re-enabling the click listener here
                         suggestionItem.addEventListener('click', () => {
                             sourceTimezoneInput.value = tz.label;
                             sourceSuggestions.classList.remove('show');
@@ -914,6 +966,20 @@
                     toggleConversionBtn.textContent = 'Show Time Conversion Tools';
                 }
             });
+
+            // Event delegation for the delete button
+            timezoneListContainer.addEventListener('click', (e) => {
+                const target = e.target;
+                const deleteButton = target.closest('.delete-btn');
+                if (deleteButton) {
+                    const timezoneItem = deleteButton.closest('.timezone-item');
+                    if (timezoneItem) {
+                        const label = timezoneItem.dataset.label;
+                        removeTimezone(label);
+                    }
+                }
+            });
+
 
             init();
 
