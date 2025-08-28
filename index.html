@@ -387,21 +387,9 @@
         <button class="toggle-btn" id="toggleConversionBtn">Show Time Conversion Tools</button>
 
         <div id="conversionContainer">
-            <!-- Local time input for conversion -->
-            <div class="conversion-section">
-                <p><strong>Convert your local time to other timezones:</strong></p>
-                <input type="text" id="localTimeInput" placeholder="e.g., 10:30 AM or 14:00">
-                <div class="conversion-btn-group">
-                    <button id="localConvertBtn">Convert</button>
-                    <button id="localClearBtn">Clear</button>
-                </div>
-            </div>
-            
-            <hr class="separator">
-
             <!-- Foreign timezone conversion section -->
             <div class="conversion-section">
-                <p><strong>Convert a time from another timezone:</strong></p>
+                <p><strong>Convert time from selected timezone</strong></p>
                 <div class="conversion-form" style="margin-bottom: 0;">
                     <select id="sourceTimezoneSelect">
                         <option value="prompt">Select a timezone...</option>
@@ -439,15 +427,12 @@
             const timezoneInput = document.getElementById('timezoneInput');
             const suggestionsContainer = document.getElementById('suggestions');
             const addTimezoneBtn = document.getElementById('addTimezoneBtn');
-            const localTimeInput = document.getElementById('localTimeInput');
             const foreignTimeInput = document.getElementById('foreignTimeInput');
             const sourceTimezoneSelect = document.getElementById('sourceTimezoneSelect');
             const timezoneListContainer = document.getElementById('timezoneListContainer');
             const messageBox = document.getElementById('messageBox');
             const hourFormatToggle = document.getElementById('hourFormatToggle');
-            const localConvertBtn = document.getElementById('localConvertBtn');
             const foreignConvertBtn = document.getElementById('foreignConvertBtn');
-            const localClearBtn = document.getElementById('localClearBtn');
             const foreignClearBtn = document.getElementById('foreignClearBtn');
             const toggleConversionBtn = document.getElementById('toggleConversionBtn');
             const conversionContainer = document.getElementById('conversionContainer');
@@ -762,60 +747,6 @@
                     });
                 }
             };
-
-            // Function to parse user input and trigger conversion
-            const convertLocalTime = (input) => {
-                // Clear any previous error messages
-                showMessage(''); 
-                
-                // Stop the live clock
-                if (intervalId) {
-                    clearInterval(intervalId);
-                }
-
-                const now = new Date();
-                let dateToConvert;
-                
-                // Regex for 12-hour format (e.g., 10:30 AM)
-                const ampmMatch = input.match(/^(\d{1,2}):(\d{2})\s*([AP]M)/i);
-                // Regex for 24-hour format (e.g., 14:30)
-                const militaryMatch = input.match(/^(\d{1,2}):(\d{2})$/);
-                
-                if (ampmMatch) {
-                    let [_, hours, minutes, ampm] = ampmMatch;
-                    hours = parseInt(hours, 10);
-                    minutes = parseInt(minutes, 10);
-
-                    if (ampm.toUpperCase() === 'PM' && hours < 12) {
-                        hours += 12;
-                    }
-                    if (ampm.toUpperCase() === 'AM' && hours === 12) {
-                        hours = 0;
-                    }
-                    
-                    dateToConvert = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, 0);
-
-                } else if (militaryMatch) {
-                    let [_, hours, minutes] = militaryMatch;
-                    hours = parseInt(hours, 10);
-                    minutes = parseInt(minutes, 10);
-                    
-                    if (hours > 23 || minutes > 59) {
-                        showMessage('Invalid time format. Please use HH:MM or HH:MM AM/PM.', 'error');
-                        return;
-                    }
-                    
-                    dateToConvert = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, 0);
-
-                } else {
-                    showMessage('Invalid time format. Please use HH:MM or HH:MM AM/PM.', 'error');
-                    return;
-                }
-
-                if (dateToConvert) {
-                    updateTimes(dateToConvert);
-                }
-            };
             
             // Function to parse a foreign time and convert it to all timezones
             const convertForeignTime = () => {
@@ -889,9 +820,7 @@
                 saveTimezones();
                 renderTimezones();
                 // After removal, update times based on the remaining inputs
-                if (localTimeInput.value.trim() !== '') {
-                    convertLocalTime(localTimeInput.value);
-                } else if (foreignTimeInput.value.trim() !== '') {
+                if (foreignTimeInput.value.trim() !== '') {
                     convertForeignTime();
                 } else {
                     // If no inputs, revert to the current time
@@ -1052,33 +981,9 @@
                 }
             });
             
-            // Event listeners for the local conversion button
-            localConvertBtn.addEventListener('click', () => {
-                const inputVal = localTimeInput.value.trim();
-                foreignTimeInput.value = ''; // Clear other input
-                sourceTimezoneSelect.value = 'prompt'; // Reset dropdown
-                if (inputVal === '') {
-                    showMessage('Please enter a time to convert.', 'error');
-                } else {
-                    convertLocalTime(inputVal);
-                }
-            });
-            
             // Event listeners for the foreign conversion button
             foreignConvertBtn.addEventListener('click', () => {
-                localTimeInput.value = ''; // Clear other input
                 convertForeignTime();
-            });
-            
-            // Event listener for the local clear button
-            localClearBtn.addEventListener('click', () => {
-                localTimeInput.value = '';
-                updateTimes();
-                // Restart the live clock
-                if (intervalId) {
-                    clearInterval(intervalId);
-                }
-                intervalId = setInterval(() => updateTimes(), 1000);
             });
             
             // Event listener for the foreign clear button
