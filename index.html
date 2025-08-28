@@ -7,7 +7,7 @@
     <style>
         /* Base styling for a black and white theme with a retro feel */
         body {
-            font-family: 'Courier New', monospace;
+            font-family: 'Roboto', 'Open Sans', Verdana, sans-serif;
             background-color: #f0f0f0; /* Light gray background */
             color: #000000; /* Black text */
             display: flex;
@@ -116,7 +116,7 @@
         .add-timezone-form button,
         .timezone-item .remove-btn,
         .modal-buttons button,
-        .conversion-section .convert-btn,
+        .conversion-btn-group button,
         .toggle-btn {
             height: 2.5rem; /* Standardized height */
             padding: 0 1rem; /* Uniform horizontal padding */
@@ -132,13 +132,19 @@
         .add-timezone-form button:hover,
         .timezone-item .remove-btn:hover,
         .modal-buttons button:hover,
-        .conversion-section .convert-btn:hover,
+        .conversion-btn-group button:hover,
         .toggle-btn:hover {
             border: 2px inset #000000;
             background-color: #e0e0e0;
         }
         
         /* --- END OF UNIFORM STYLING --- */
+        
+        .conversion-btn-group {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
 
         .conversion-form {
             display: flex;
@@ -296,6 +302,7 @@
             justify-content: center;
             align-items: center;
             z-index: 100;
+            font-family: 'Roboto', 'Open Sans', Verdana, sans-serif;
         }
         
         .modal-box {
@@ -350,6 +357,13 @@
             max-height: 600px; /* A value large enough to hold the content */
         }
     </style>
+    <script>
+        // Use Google Fonts for Roboto and Open Sans
+        const link = document.createElement('link');
+        link.href = 'https://fonts.googleapis.com/css2?family=Open+Sans&family=Roboto:wght@400;700&display=swap';
+        link.rel = 'stylesheet';
+        document.head.appendChild(link);
+    </script>
 </head>
 <body>
 
@@ -377,7 +391,10 @@
             <div class="conversion-section">
                 <p><strong>Convert your local time to other timezones:</strong></p>
                 <input type="text" id="localTimeInput" placeholder="e.g., 10:30 AM or 14:00">
-                <button class="convert-btn" id="localConvertBtn" style="margin-top: 1rem;">Convert</button>
+                <div class="conversion-btn-group">
+                    <button id="localConvertBtn">Convert</button>
+                    <button id="localClearBtn">Clear</button>
+                </div>
             </div>
             
             <hr class="separator">
@@ -391,7 +408,10 @@
                     </select>
                     <input type="text" id="foreignTimeInput" placeholder="e.g., 10:30 AM or 14:00">
                 </div>
-                <button class="convert-btn" id="foreignConvertBtn" style="margin-top: 1rem;">Convert</button>
+                <div class="conversion-btn-group">
+                    <button id="foreignConvertBtn">Convert</button>
+                    <button id="foreignClearBtn">Clear</button>
+                </div>
             </div>
         </div>
         
@@ -427,10 +447,12 @@
             const hourFormatToggle = document.getElementById('hourFormatToggle');
             const localConvertBtn = document.getElementById('localConvertBtn');
             const foreignConvertBtn = document.getElementById('foreignConvertBtn');
+            const localClearBtn = document.getElementById('localClearBtn');
+            const foreignClearBtn = document.getElementById('foreignClearBtn');
             const toggleConversionBtn = document.getElementById('toggleConversionBtn');
             const conversionContainer = document.getElementById('conversionContainer');
             let savedTimezones = [];
-            let intervalId = null;
+            let intervalId = null; // This variable will now be used to store the interval ID
             let is24HourFormat = false;
             let draggedItem = null;
             let activeSuggestionIndex = -1; // New state for keyboard navigation
@@ -678,29 +700,56 @@
             
             // Function to update the time for each timezone
             const updateTimes = (inputDate = null) => {
-                const timeElements = document.querySelectorAll('.timezone-item .time');
-                const now = inputDate || new Date();
-                timeElements.forEach(el => {
-                    const tz = el.getAttribute('data-timezone');
-                    try {
-                        const options = {
-                            hour: '2-digit', minute: '2-digit', second: '2-digit',
-                            timeZoneName: 'short', timeZone: tz, hour12: !is24HourFormat
-                        };
-                        const timeString = new Intl.DateTimeFormat('en-US', options).format(now);
-                        el.textContent = timeString;
-                        el.style.color = ''; // Reset color on success
-                    } catch (e) {
-                        el.textContent = 'Invalid Timezone';
-                        el.style.color = 'red';
-                    }
-                });
+                // If a specific date is provided, update all clocks to that time.
+                // Otherwise, use the live clock.
+                if (inputDate) {
+                    const timeElements = document.querySelectorAll('.timezone-item .time');
+                    timeElements.forEach(el => {
+                        const tz = el.getAttribute('data-timezone');
+                        try {
+                            const options = {
+                                hour: '2-digit', minute: '2-digit', second: '2-digit',
+                                timeZoneName: 'short', timeZone: tz, hour12: !is24HourFormat
+                            };
+                            const timeString = new Intl.DateTimeFormat('en-US', options).format(inputDate);
+                            el.textContent = timeString;
+                            el.style.color = ''; // Reset color on success
+                        } catch (e) {
+                            el.textContent = 'Invalid Timezone';
+                            el.style.color = 'red';
+                        }
+                    });
+                } else {
+                    // Update the live clock
+                    const timeElements = document.querySelectorAll('.timezone-item .time');
+                    const now = new Date();
+                    timeElements.forEach(el => {
+                        const tz = el.getAttribute('data-timezone');
+                        try {
+                            const options = {
+                                hour: '2-digit', minute: '2-digit', second: '2-digit',
+                                timeZoneName: 'short', timeZone: tz, hour12: !is24HourFormat
+                            };
+                            const timeString = new Intl.DateTimeFormat('en-US', options).format(now);
+                            el.textContent = timeString;
+                            el.style.color = ''; // Reset color on success
+                        } catch (e) {
+                            el.textContent = 'Invalid Timezone';
+                            el.style.color = 'red';
+                        }
+                    });
+                }
             };
 
             // Function to parse user input and trigger conversion
             const convertLocalTime = (input) => {
                 // Clear any previous error messages
                 showMessage(''); 
+                
+                // Stop the live clock
+                if (intervalId) {
+                    clearInterval(intervalId);
+                }
 
                 const now = new Date();
                 let dateToConvert;
@@ -754,6 +803,11 @@
                 if (!foreignTimeStr || sourceTz === "prompt") {
                     showMessage('Please enter a time and select a source timezone.', 'error');
                     return;
+                }
+                
+                // Stop the live clock
+                if (intervalId) {
+                    clearInterval(intervalId);
                 }
                 
                 // Parse the input time.
@@ -993,6 +1047,29 @@
                 localTimeInput.value = ''; // Clear other input
                 convertForeignTime();
             });
+            
+            // Event listener for the local clear button
+            localClearBtn.addEventListener('click', () => {
+                localTimeInput.value = '';
+                updateTimes();
+                // Restart the live clock
+                if (intervalId) {
+                    clearInterval(intervalId);
+                }
+                intervalId = setInterval(() => updateTimes(), 1000);
+            });
+            
+            // Event listener for the foreign clear button
+            foreignClearBtn.addEventListener('click', () => {
+                foreignTimeInput.value = '';
+                sourceTimezoneSelect.value = 'prompt';
+                updateTimes();
+                // Restart the live clock
+                if (intervalId) {
+                    clearInterval(intervalId);
+                }
+                intervalId = setInterval(() => updateTimes(), 1000);
+            });
 
             // Event listener for the hour format toggle
             hourFormatToggle.addEventListener('change', (e) => {
@@ -1012,6 +1089,1107 @@
 
             // Initial setup
             init();
+
+            // Start the live clock once the page is loaded and timezones are rendered
+            intervalId = setInterval(() => updateTimes(), 1000);
+        });
+    </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comprehensive Timezone Viewer</title>
+    <style>
+        /* Base styling for a black and white theme with a retro feel */
+        body {
+            font-family: 'Roboto', 'Open Sans', Verdana, sans-serif;
+            background-color: #f0f0f0; /* Light gray background */
+            color: #000000; /* Black text */
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            margin: 0;
+            padding: 2rem;
+            box-sizing: border-box;
+            line-height: 1.6;
+        }
+
+        /* Container with a classic border effect */
+        .container {
+            width: 100%;
+            max-width: 600px;
+            padding: 2rem;
+            border-radius: 0;
+            background-color: #ffffff; /* White background */
+            box-shadow: none;
+            border: 2px outset #cccccc; /* Subtle 3D border */
+        }
+
+        /* Header styling with a subtle gradient */
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+            background: linear-gradient(to right, #f0f0f0, #e0e0e0);
+            padding: 1rem;
+            border: 2px outset #cccccc;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            margin: 0;
+            color: #000000;
+            text-shadow: 2px 2px 0 #cccccc; /* Gray text shadow */
+        }
+        
+        /* Time format toggle styling */
+        .format-toggle {
+            text-align: center;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .format-toggle label {
+            font-size: 1rem;
+            cursor: pointer;
+            margin-right: 0.5rem;
+            color: #000000;
+        }
+
+        .format-toggle input[type="checkbox"] {
+            cursor: pointer;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background-color: #ffffff;
+            border: 2px inset #000000;
+            position: relative;
+            top: 1px;
+        }
+
+        .format-toggle input[type="checkbox"]:checked {
+            background-color: #000000; /* Black checked state */
+            border: 2px outset #ffffff;
+        }
+
+        .format-toggle .checkmark {
+            position: absolute;
+            top: 1px;
+            left: 1px;
+            width: 12px;
+            height: 12px;
+            pointer-events: none;
+            display: none;
+        }
+
+        .format-toggle input[type="checkbox"]:checked ~ .checkmark {
+            display: block;
+        }
+
+        /* --- UNIFORM STYLING FOR ALL INPUTS, SELECTS, AND BUTTONS --- */
+        
+        /* Unified style for all text inputs and select dropdowns */
+        .conversion-form input[type="text"],
+        .conversion-form select,
+        .add-timezone-form input[type="text"],
+        .conversion-section input[type="text"] {
+            height: 2.5rem; /* Standardized height */
+            padding: 0 0.75rem; /* Uniform horizontal padding */
+            font-size: 1rem;
+            border: 2px inset #000000;
+            border-radius: 0;
+            background-color: #ffffff;
+            color: #000000;
+            box-shadow: none;
+            box-sizing: border-box;
+            width: 100%; /* Ensure they fill their container */
+        }
+
+        /* Unified style for all buttons */
+        .add-timezone-form button,
+        .timezone-item .remove-btn,
+        .modal-buttons button,
+        .conversion-btn-group button,
+        .toggle-btn {
+            height: 2.5rem; /* Standardized height */
+            padding: 0 1rem; /* Uniform horizontal padding */
+            font-size: 1rem;
+            border: 2px outset #000000;
+            background-color: #ffffff;
+            cursor: pointer;
+            border-radius: 0;
+            color: #000000;
+            box-sizing: border-box;
+        }
+        
+        .add-timezone-form button:hover,
+        .timezone-item .remove-btn:hover,
+        .modal-buttons button:hover,
+        .conversion-btn-group button:hover,
+        .toggle-btn:hover {
+            border: 2px inset #000000;
+            background-color: #e0e0e0;
+        }
+        
+        /* --- END OF UNIFORM STYLING --- */
+        
+        .conversion-btn-group {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .conversion-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .conversion-form p {
+            margin: 0;
+        }
+
+        /* Message box for displaying user feedback or errors */
+        .message-box {
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            border-radius: 0;
+            background-color: #f0f0f0;
+            color: #000000;
+            border: 2px inset #cccccc;
+            display: none; /* Hidden by default */
+        }
+        .message-box.show {
+            display: block;
+        }
+
+        .drag-instruction {
+            text-align: center;
+            font-style: italic;
+            font-size: 0.9rem;
+            color: #555;
+            margin-bottom: 1rem;
+        }
+
+        /* Container for the timezone list */
+        .timezone-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .timezone-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background-color: #eeeeee; /* Light gray item background */
+            border: 2px outset #cccccc;
+            border-radius: 0;
+            box-shadow: none;
+            transition: none;
+            cursor: grab; /* Indicates draggability */
+        }
+
+        .timezone-item:hover {
+            border: 2px inset #cccccc;
+            background-color: #dddddd;
+        }
+
+        .timezone-item.dragging {
+            opacity: 0.5;
+            border: 2px dashed #000000;
+            background-color: #cccccc;
+        }
+
+        .timezone-item-content {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .timezone-item-text {
+            flex-grow: 1;
+        }
+
+        .timezone-item p {
+            margin: 0;
+        }
+
+        .timezone-item .time {
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        /* Pin button styling */
+        .pin-btn {
+            background: none;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .pin-btn .pin-icon {
+            fill: transparent; /* Unpinned state: transparent fill */
+            stroke: #000000; /* Black stroke */
+            stroke-width: 1.5;
+            transition: fill 0.2s ease-in-out;
+        }
+        
+        .pin-btn.pinned .pin-icon {
+            fill: #000000; /* Pinned state: black fill */
+        }
+
+        .add-timezone-form {
+            position: relative;
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        /* Dropdown suggestions styling */
+        .suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0; /* Changed to fill container */
+            background-color: #ffffff;
+            border: 2px inset #000000;
+            border-top: none;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 10;
+        }
+        
+        .suggestions div {
+            padding: 0.5rem;
+            cursor: pointer;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        /* New class for the actively selected suggestion */
+        .suggestions div.active-suggestion {
+            background-color: #f0f0f0;
+            border: 1px dashed #000000;
+        }
+
+        .suggestions div:hover {
+            background-color: #f0f0f0;
+        }
+        
+        /* Modal styling */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent overlay */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            font-family: 'Roboto', 'Open Sans', Verdana, sans-serif;
+        }
+        
+        .modal-box {
+            background-color: #ffffff;
+            padding: 2rem;
+            border: 2px outset #cccccc;
+            max-width: 400px;
+            text-align: center;
+        }
+        
+        .modal-buttons {
+            margin-top: 1.5rem;
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+        }
+        
+        /* Responsive design for smaller screens */
+        @media (max-width: 600px) {
+            body {
+                padding: 1rem;
+            }
+
+            .container {
+                padding: 1rem;
+            }
+        }
+        
+        .conversion-section {
+            border: 2px inset #cccccc;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .conversion-section p {
+            margin-top: 0;
+        }
+        
+        .separator {
+            border: 1px solid #000000;
+            margin: 2rem 0;
+        }
+
+        /* Styles for the new conversion feature container */
+        #conversionContainer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-in-out;
+        }
+        
+        #conversionContainer.expanded {
+            max-height: 600px; /* A value large enough to hold the content */
+        }
+    </style>
+    <script>
+        // Use Google Fonts for Roboto and Open Sans
+        const link = document.createElement('link');
+        link.href = 'https://fonts.googleapis.com/css2?family=Open+Sans&family=Roboto:wght@400;700&display=swap';
+        link.rel = 'stylesheet';
+        document.head.appendChild(link);
+    </script>
+</head>
+<body>
+
+    <div class="container">
+        <header class="header">
+            <h1>Comprehensive Timezone Viewer</h1>
+        </header>
+
+        <!-- Form for adding a new timezone -->
+        <div class="add-timezone-form">
+            <input type="text" id="timezoneInput" placeholder="Add a city or timezone (e.g., 'Asia/Kolkata')">
+            <div id="suggestions" class="suggestions" style="display: none;"></div>
+            <button id="addTimezoneBtn">Add</button>
+        </div>
+        
+        <div class="message-box" id="messageBox"></div>
+
+        <hr class="separator">
+        
+        <!-- Toggle button for conversion features -->
+        <button class="toggle-btn" id="toggleConversionBtn">Show Time Conversion Tools</button>
+
+        <div id="conversionContainer">
+            <!-- Local time input for conversion -->
+            <div class="conversion-section">
+                <p><strong>Convert your local time to other timezones:</strong></p>
+                <input type="text" id="localTimeInput" placeholder="e.g., 10:30 AM or 14:00">
+                <div class="conversion-btn-group">
+                    <button id="localConvertBtn">Convert</button>
+                    <button id="localClearBtn">Clear</button>
+                </div>
+            </div>
+            
+            <hr class="separator">
+
+            <!-- Foreign timezone conversion section -->
+            <div class="conversion-section">
+                <p><strong>Convert a time from another timezone:</strong></p>
+                <div class="conversion-form" style="margin-bottom: 0;">
+                    <select id="sourceTimezoneSelect">
+                        <option value="prompt">Select a timezone...</option>
+                    </select>
+                    <input type="text" id="foreignTimeInput" placeholder="e.g., 10:30 AM or 14:00">
+                </div>
+                <div class="conversion-btn-group">
+                    <button id="foreignConvertBtn">Convert</button>
+                    <button id="foreignClearBtn">Clear</button>
+                </div>
+            </div>
+        </div>
+        
+        <hr class="separator">
+
+        <!-- Time format toggle -->
+        <div class="format-toggle">
+            <input type="checkbox" id="hourFormatToggle">
+            <label for="hourFormatToggle">24-Hour Format</label>
+            <svg class="checkmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+                <path d="M14 27l12 12 12-12" stroke="#000" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+        </div>
+        
+        <p class="drag-instruction">Drag and drop to reorder, or click the pin to pin.</p>
+
+        <!-- List to display added timezones -->
+        <div class="timezone-list" id="timezoneListContainer">
+            <!-- Timezones will be added here dynamically -->
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const timezoneInput = document.getElementById('timezoneInput');
+            const suggestionsContainer = document.getElementById('suggestions');
+            const addTimezoneBtn = document.getElementById('addTimezoneBtn');
+            const localTimeInput = document.getElementById('localTimeInput');
+            const foreignTimeInput = document.getElementById('foreignTimeInput');
+            const sourceTimezoneSelect = document.getElementById('sourceTimezoneSelect');
+            const timezoneListContainer = document.getElementById('timezoneListContainer');
+            const messageBox = document.getElementById('messageBox');
+            const hourFormatToggle = document.getElementById('hourFormatToggle');
+            const localConvertBtn = document.getElementById('localConvertBtn');
+            const foreignConvertBtn = document.getElementById('foreignConvertBtn');
+            const localClearBtn = document.getElementById('localClearBtn');
+            const foreignClearBtn = document.getElementById('foreignClearBtn');
+            const toggleConversionBtn = document.getElementById('toggleConversionBtn');
+            const conversionContainer = document.getElementById('conversionContainer');
+            let savedTimezones = [];
+            let intervalId = null; // This variable will now be used to store the interval ID
+            let is24HourFormat = false;
+            let draggedItem = null;
+            let activeSuggestionIndex = -1; // New state for keyboard navigation
+            
+            // Map of common abbreviations to a representative full timezone name
+            const abbreviationMap = {
+                'IST': 'Asia/Kolkata',
+                'EST': 'America/New_York',
+                'EDT': 'America/New_York',
+                'CST': 'America/Chicago',
+                'CDT': 'America/Chicago',
+                'MST': 'America/Denver',
+                'MDT': 'America/Denver',
+                'PST': 'America/Los_Angeles',
+                'PDT': 'America/Los_Angeles',
+                'CET': 'Europe/Paris',
+                'CEST': 'Europe/Paris',
+                'GMT': 'Europe/London',
+                'BST': 'Europe/London',
+                'UTC': 'Etc/UTC'
+            };
+
+            // List of common timezones for suggestions, including abbreviations
+            const allTimezones = [
+                ...Object.keys(abbreviationMap),
+                'America/New_York', 'America/Los_Angeles', 'America/Chicago', 'America/Denver',
+                'Europe/London', 'Europe/Paris', 'Europe/Berlin', 'Europe/Moscow',
+                'Asia/Tokyo', 'Asia/Shanghai', 'Asia/Dubai', 'Asia/Kolkata', 'Asia/Singapore',
+                'Australia/Sydney', 'Australia/Melbourne', 'Australia/Brisbane',
+                'Africa/Cairo', 'Africa/Johannesburg', 'Atlantic/Reykjavik', 'Pacific/Auckland',
+                'Etc/UTC'
+            ].sort();
+            
+            // Function to display messages to the user
+            const showMessage = (message, type = 'info') => {
+                messageBox.textContent = message;
+                messageBox.className = `message-box show`;
+                if (type === 'error') {
+                    messageBox.style.color = '#ff0000';
+                    messageBox.style.borderColor = '#ff0000';
+                } else {
+                    messageBox.style.color = '#008000';
+                    messageBox.style.borderColor = '#008000';
+                }
+                setTimeout(() => {
+                    messageBox.className = 'message-box';
+                }, 3000); // Hide message after 3 seconds
+            };
+            
+            // Function to check if local storage is available
+            const isLocalStorageAvailable = () => {
+                try {
+                    const testKey = '__test__';
+                    localStorage.setItem(testKey, testKey);
+                    localStorage.removeItem(testKey);
+                    return true;
+                } catch (e) {
+                    return false;
+                }
+            };
+            
+            // Main initialization function
+            const init = () => {
+                const localStorageAvailable = isLocalStorageAvailable();
+                if (localStorageAvailable) {
+                    const localStoragePermission = localStorage.getItem('localStoragePermission');
+                    if (localStoragePermission === null) {
+                        showPermissionModal();
+                    } else {
+                        loadTimezones();
+                    }
+                } else {
+                    loadTimezones();
+                }
+            };
+
+            // Function to show the permission modal
+            const showPermissionModal = () => {
+                const modal = document.createElement('div');
+                modal.className = 'modal-overlay';
+                modal.innerHTML = `
+                    <div class="modal-box">
+                        <p>This site would like to save your timezones locally in your browser for a better experience. Do you accept?</p>
+                        <div class="modal-buttons">
+                            <button id="acceptBtn" class="accept-button">Accept</button>
+                            <button id="declineBtn" class="decline-button">Decline</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+
+                document.getElementById('acceptBtn').addEventListener('click', () => {
+                    localStorage.setItem('localStoragePermission', 'accepted');
+                    modal.remove();
+                    loadTimezones();
+                });
+
+                document.getElementById('declineBtn').addEventListener('click', () => {
+                    localStorage.setItem('localStoragePermission', 'denied');
+                    modal.remove();
+                    loadTimezones();
+                });
+            };
+
+            // Function to load timezones and preferences from local storage
+            const loadTimezones = () => {
+                if (localStorage.getItem('localStoragePermission') === 'accepted' && isLocalStorageAvailable()) {
+                    const storedTimezones = localStorage.getItem('timezones');
+                    if (storedTimezones) {
+                        savedTimezones = JSON.parse(storedTimezones);
+                    }
+                    const storedFormat = localStorage.getItem('is24HourFormat');
+                    is24HourFormat = storedFormat ? JSON.parse(storedFormat) : false;
+                    hourFormatToggle.checked = is24HourFormat;
+                }
+                renderTimezones();
+            };
+
+            // Function to save timezones and preferences to local storage
+            const saveTimezones = () => {
+                if (localStorage.getItem('localStoragePermission') === 'accepted' && isLocalStorageAvailable()) {
+                    try {
+                        localStorage.setItem('timezones', JSON.stringify(savedTimezones));
+                        localStorage.setItem('is24HourFormat', JSON.stringify(is24HourFormat));
+                    } catch (e) {
+                        // In case localStorage quota is exceeded or an error occurs
+                        console.error("Could not save to localStorage:", e);
+                    }
+                }
+            };
+            
+            // Sort function to prioritize pinned items
+            const sortTimezones = () => {
+                savedTimezones.sort((a, b) => {
+                    if (a.isPinned && !b.isPinned) return -1;
+                    if (!a.isPinned && b.isPinned) return 1;
+                    return 0; // Maintain original order for same-type items
+                });
+            };
+            
+            // Function to add a timezone
+            const addTimezone = (timezoneInputVal) => {
+                if (!timezoneInputVal) {
+                    showMessage('Please enter a timezone or city.', 'error');
+                    return;
+                }
+
+                // Check for duplicate labels
+                const timezoneExists = savedTimezones.some(tzObj => tzObj.label.toLowerCase() === timezoneInputVal.toLowerCase());
+                if (timezoneExists) {
+                    showMessage(`Timezone for "${timezoneInputVal}" is already added.`, 'error');
+                    return;
+                }
+                
+                // Check if the input is a known abbreviation
+                const fullTimezone = abbreviationMap[timezoneInputVal.toUpperCase()] || timezoneInputVal;
+                
+                // Validate if the timezone is valid using a new Date object
+                try {
+                    const testDate = new Date();
+                    const options = { timeZone: fullTimezone };
+                    testDate.toLocaleString('en-US', options); // This will throw an error for invalid timezones
+                    
+                    // Save both the user-entered label and the full timezone name
+                    savedTimezones.push({ label: timezoneInputVal, timezone: fullTimezone, isPinned: false });
+                    saveTimezones();
+                    renderTimezones();
+                    showMessage(`Added timezone for "${timezoneInputVal}".`);
+                    timezoneInput.value = ''; // Clear the input field
+                    suggestionsContainer.style.display = 'none';
+                    activeSuggestionIndex = -1; // Reset active suggestion index
+                } catch (e) {
+                    showMessage(`Invalid timezone: "${timezoneInputVal}". Please try again.`, 'error');
+                }
+            };
+
+            // Function to render the list of timezones and populate the source dropdown
+            const renderTimezones = () => {
+                timezoneListContainer.innerHTML = '';
+                sortTimezones();
+                
+                // Preserve the currently selected value before re-rendering
+                const currentSelection = sourceTimezoneSelect.value;
+                
+                // Populate the source timezone select dropdown
+                sourceTimezoneSelect.innerHTML = '<option value="prompt">Select a timezone...</option>';
+                // Add the user's local timezone
+                const localTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                sourceTimezoneSelect.innerHTML += `<option value="${localTz}">Local Timezone (${localTz})</option>`;
+                
+                savedTimezones.forEach(tzObj => {
+                    const option = document.createElement('option');
+                    option.value = tzObj.timezone;
+                    option.textContent = tzObj.label;
+                    sourceTimezoneSelect.appendChild(option);
+                });
+
+                // Restore the selected value after re-rendering
+                sourceTimezoneSelect.value = currentSelection;
+                
+                if (savedTimezones.length === 0) {
+                    timezoneListContainer.innerHTML = '<p style="text-align: center; color: #555;">No timezones added yet.</p>';
+                } else {
+                    savedTimezones.forEach((tzObj, index) => {
+                        const timezoneItem = document.createElement('div');
+                        timezoneItem.className = `timezone-item`;
+                        timezoneItem.dataset.label = tzObj.label;
+                        timezoneItem.dataset.isPinned = tzObj.isPinned;
+                        timezoneItem.draggable = true;
+                        
+                        // Create the inner HTML with the pin button
+                        timezoneItem.innerHTML = `
+                            <div class="timezone-item-content">
+                                <button class="pin-btn ${tzObj.isPinned ? 'pinned' : ''}" aria-label="Pin timezone">
+                                    <svg class="pin-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+                                        <path d="M14 4h-4v9.64l-2 1.4V16h8v-0.96l-2-1.4V4zM12 2C9.24 2 7 4.24 7 7c0 1.2.4 2.3 1.08 3.2L5 13.91V22h14v-8.09L15.92 10.2c.68-.9 1.08-2 1.08-3.2C17 4.24 14.76 2 12 2z"/>
+                                    </svg>
+                                </button>
+                                <div class="timezone-item-text">
+                                    <p><strong>${tzObj.label}</strong><br><span class="time" data-timezone="${tzObj.timezone}"></span></p>
+                                </div>
+                            </div>
+                            <button class="remove-btn">Remove</button>
+                        `;
+
+                        // Add event listeners for the buttons
+                        timezoneItem.querySelector('.remove-btn').addEventListener('click', () => removeTimezone(tzObj.label));
+                        timezoneItem.querySelector('.pin-btn').addEventListener('click', () => togglePin(tzObj.label));
+
+                        timezoneListContainer.appendChild(timezoneItem);
+                    });
+                }
+                updateTimes(); // Initial call
+            };
+
+            // Function to toggle the pinned state of a timezone
+            const togglePin = (label) => {
+                const tzObj = savedTimezones.find(tz => tz.label === label);
+                if (tzObj) {
+                    tzObj.isPinned = !tzObj.isPinned;
+                    saveTimezones();
+                    renderTimezones();
+                }
+            };
+            
+            // Function to update the time for each timezone
+            const updateTimes = (inputDate = null) => {
+                // If a specific date is provided, update all clocks to that time.
+                // Otherwise, use the live clock.
+                if (inputDate) {
+                    const timeElements = document.querySelectorAll('.timezone-item .time');
+                    timeElements.forEach(el => {
+                        const tz = el.getAttribute('data-timezone');
+                        try {
+                            const options = {
+                                hour: '2-digit', minute: '2-digit', second: '2-digit',
+                                timeZoneName: 'short', timeZone: tz, hour12: !is24HourFormat
+                            };
+                            const timeString = new Intl.DateTimeFormat('en-US', options).format(inputDate);
+                            el.textContent = timeString;
+                            el.style.color = ''; // Reset color on success
+                        } catch (e) {
+                            el.textContent = 'Invalid Timezone';
+                            el.style.color = 'red';
+                        }
+                    });
+                } else {
+                    // Update the live clock
+                    const timeElements = document.querySelectorAll('.timezone-item .time');
+                    const now = new Date();
+                    timeElements.forEach(el => {
+                        const tz = el.getAttribute('data-timezone');
+                        try {
+                            const options = {
+                                hour: '2-digit', minute: '2-digit', second: '2-digit',
+                                timeZoneName: 'short', timeZone: tz, hour12: !is24HourFormat
+                            };
+                            const timeString = new Intl.DateTimeFormat('en-US', options).format(now);
+                            el.textContent = timeString;
+                            el.style.color = ''; // Reset color on success
+                        } catch (e) {
+                            el.textContent = 'Invalid Timezone';
+                            el.style.color = 'red';
+                        }
+                    });
+                }
+            };
+
+            // Function to parse user input and trigger conversion
+            const convertLocalTime = (input) => {
+                // Clear any previous error messages
+                showMessage(''); 
+                
+                // Stop the live clock
+                if (intervalId) {
+                    clearInterval(intervalId);
+                }
+
+                const now = new Date();
+                let dateToConvert;
+                
+                // Regex for 12-hour format (e.g., 10:30 AM)
+                const ampmMatch = input.match(/^(\d{1,2}):(\d{2})\s*([AP]M)/i);
+                // Regex for 24-hour format (e.g., 14:30)
+                const militaryMatch = input.match(/^(\d{1,2}):(\d{2})$/);
+                
+                if (ampmMatch) {
+                    let [_, hours, minutes, ampm] = ampmMatch;
+                    hours = parseInt(hours, 10);
+                    minutes = parseInt(minutes, 10);
+
+                    if (ampm.toUpperCase() === 'PM' && hours < 12) {
+                        hours += 12;
+                    }
+                    if (ampm.toUpperCase() === 'AM' && hours === 12) {
+                        hours = 0;
+                    }
+                    
+                    dateToConvert = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, 0);
+
+                } else if (militaryMatch) {
+                    let [_, hours, minutes] = militaryMatch;
+                    hours = parseInt(hours, 10);
+                    minutes = parseInt(minutes, 10);
+                    
+                    if (hours > 23 || minutes > 59) {
+                        showMessage('Invalid time format. Please use HH:MM or HH:MM AM/PM.', 'error');
+                        return;
+                    }
+                    
+                    dateToConvert = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, 0);
+
+                } else {
+                    showMessage('Invalid time format. Please use HH:MM or HH:MM AM/PM.', 'error');
+                    return;
+                }
+
+                if (dateToConvert) {
+                    updateTimes(dateToConvert);
+                }
+            };
+            
+            // Function to parse a foreign time and convert it to all timezones
+            const convertForeignTime = () => {
+                const foreignTimeStr = foreignTimeInput.value.trim();
+                const sourceTz = sourceTimezoneSelect.value;
+                
+                if (!foreignTimeStr || sourceTz === "prompt") {
+                    showMessage('Please enter a time and select a source timezone.', 'error');
+                    return;
+                }
+                
+                // Stop the live clock
+                if (intervalId) {
+                    clearInterval(intervalId);
+                }
+                
+                // Parse the input time.
+                const ampmMatch = foreignTimeStr.match(/^(\d{1,2}):(\d{2})\s*([AP]M)/i);
+                const militaryMatch = foreignTimeStr.match(/^(\d{1,2}):(\d{2})$/);
+
+                let hours, minutes;
+                if (ampmMatch) {
+                    hours = parseInt(ampmMatch[1], 10);
+                    minutes = parseInt(ampmMatch[2], 10);
+                    const ampm = ampmMatch[3].toUpperCase();
+                    if (ampm === 'PM' && hours < 12) hours += 12;
+                    if (ampm === 'AM' && hours === 12) hours = 0;
+                } else if (militaryMatch) {
+                    hours = parseInt(militaryMatch[1], 10);
+                    minutes = parseInt(militaryMatch[2], 10);
+                } else {
+                    showMessage('Invalid time format. Please use HH:MM or HH:MM AM/PM.', 'error');
+                    updateTimes();
+                    return;
+                }
+                
+                if (hours > 23 || minutes > 59) {
+                    showMessage('Invalid time format. Please use HH:MM or HH:MM AM/PM.', 'error');
+                    updateTimes();
+                    return;
+                }
+
+                // Get a date object in the source timezone, and then convert it
+                try {
+                    const localTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                    
+                    // Create a date object based on the current date, adjusted for the foreign timezone
+                    const localNow = new Date();
+                    
+                    // The difference in hours between the two timezones
+                    const nowInForeignUTC = new Date(localNow.toLocaleString('en-US', { timeZone: sourceTz }));
+                    const nowInLocalUTC = new Date(localNow.toLocaleString('en-US', { timeZone: localTimezone }));
+                    const offsetMs = nowInForeignUTC.getTime() - nowInLocalUTC.getTime();
+
+                    // Create a date object with the user's input time in the local timezone, then adjust it
+                    const convertedDate = new Date();
+                    convertedDate.setHours(hours, minutes, 0, 0);
+                    convertedDate.setTime(convertedDate.getTime() - offsetMs); // Subtract the offset to convert from foreign to local
+                    
+                    updateTimes(convertedDate);
+
+                } catch (e) {
+                    showMessage('Invalid timezone selected.', 'error');
+                    updateTimes();
+                }
+            };
+            
+            // Function to remove a timezone
+            const removeTimezone = (labelToRemove) => {
+                savedTimezones = savedTimezones.filter(tzObj => tzObj.label !== labelToRemove);
+                saveTimezones();
+                renderTimezones();
+                // After removal, update times based on the remaining inputs
+                if (localTimeInput.value.trim() !== '') {
+                    convertLocalTime(localTimeInput.value);
+                } else if (foreignTimeInput.value.trim() !== '') {
+                    convertForeignTime();
+                } else {
+                    // If no inputs, revert to the current time
+                    updateTimes();
+                }
+            };
+            
+            // Drag and Drop Logic
+            timezoneListContainer.addEventListener('dragstart', (e) => {
+                draggedItem = e.target.closest('.timezone-item');
+                if (!draggedItem) {
+                    return;
+                }
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', draggedItem.dataset.label);
+                setTimeout(() => {
+                    draggedItem.classList.add('dragging');
+                }, 0);
+            });
+
+            timezoneListContainer.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                const target = e.target.closest('.timezone-item');
+                const list = timezoneListContainer;
+
+                if (target && target !== draggedItem) {
+                    const rect = target.getBoundingClientRect();
+                    const next = (e.clientY - rect.top) / (rect.bottom - rect.top) > .5;
+                    
+                    if (draggedItem.dataset.isPinned !== target.dataset.isPinned) {
+                        return; // Prevent dragging between pinned and unpinned groups
+                    }
+
+                    if (next) {
+                        list.insertBefore(draggedItem, target.nextElementSibling);
+                    } else {
+                        list.insertBefore(draggedItem, target);
+                    }
+                }
+            });
+
+            timezoneListContainer.addEventListener('dragend', (e) => {
+                if (draggedItem) {
+                    draggedItem.classList.remove('dragging');
+                    draggedItem = null;
+                    updateSavedOrder();
+                }
+            });
+
+            // Function to update the order in the savedTimezones array based on the DOM
+            const updateSavedOrder = () => {
+                const itemsInDom = Array.from(timezoneListContainer.children);
+                const newOrder = itemsInDom.map(item => item.dataset.label);
+                
+                const newSavedTimezones = newOrder.map(label => savedTimezones.find(tz => tz.label === label));
+                savedTimezones = newSavedTimezones;
+                saveTimezones();
+            };
+
+            // Event listeners for the 'add' button and input field
+            addTimezoneBtn.addEventListener('click', () => {
+                const trimmedInput = timezoneInput.value.trim();
+                if (trimmedInput) {
+                    addTimezone(trimmedInput);
+                } else {
+                    showMessage('Please enter a timezone or city.', 'error');
+                }
+            });
+
+            // Updated keyboard navigation for suggestions to handle single-item selection
+            timezoneInput.addEventListener('keydown', (e) => {
+                const suggestions = suggestionsContainer.querySelectorAll('div');
+                
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    if (suggestions.length > 0) {
+                        activeSuggestionIndex = (activeSuggestionIndex + 1) % suggestions.length;
+                        updateActiveSuggestion();
+                    }
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    if (suggestions.length > 0) {
+                        activeSuggestionIndex = (activeSuggestionIndex - 1 + suggestions.length) % suggestions.length;
+                        updateActiveSuggestion();
+                    }
+                } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    let valueToAdd;
+                    if (activeSuggestionIndex !== -1 && suggestions[activeSuggestionIndex]) {
+                        // If a suggestion is highlighted, use its text
+                        valueToAdd = suggestions[activeSuggestionIndex].textContent;
+                    } else {
+                        // Otherwise, use the text from the input field
+                        valueToAdd = timezoneInput.value.trim();
+                    }
+                    if (valueToAdd) {
+                        addTimezone(valueToAdd);
+                    }
+                } else if (e.key === 'Escape') {
+                    suggestionsContainer.style.display = 'none';
+                    activeSuggestionIndex = -1;
+                }
+            });
+
+            // Function to update the visual highlighting of the active suggestion
+            const updateActiveSuggestion = () => {
+                const suggestions = suggestionsContainer.querySelectorAll('div');
+                suggestions.forEach((s, index) => {
+                    if (index === activeSuggestionIndex) {
+                        s.classList.add('active-suggestion');
+                        s.scrollIntoView({ block: 'nearest' });
+                    } else {
+                        s.classList.remove('active-suggestion');
+                    }
+                });
+            };
+
+            // Event listener for suggestions on input
+            timezoneInput.addEventListener('input', () => {
+                const query = timezoneInput.value.trim().toLowerCase();
+                suggestionsContainer.innerHTML = '';
+                activeSuggestionIndex = -1; // Reset index when input changes
+                
+                if (query.length > 0) {
+                    const filteredTimezones = allTimezones.filter(tz => tz.toLowerCase().includes(query));
+                    
+                    if (filteredTimezones.length > 0) {
+                        suggestionsContainer.style.display = 'block';
+                        filteredTimezones.slice(0, 10).forEach(tz => {
+                            const suggestionItem = document.createElement('div');
+                            suggestionItem.textContent = tz;
+                            suggestionItem.addEventListener('click', () => {
+                                timezoneInput.value = tz;
+                                addTimezone(tz);
+                            });
+                            suggestionsContainer.appendChild(suggestionItem);
+                        });
+                        
+                        // New logic: auto-select single suggestion
+                        if (filteredTimezones.length === 1) {
+                            activeSuggestionIndex = 0;
+                            updateActiveSuggestion();
+                        }
+                        
+                    } else {
+                        suggestionsContainer.style.display = 'none';
+                    }
+                } else {
+                    suggestionsContainer.style.display = 'none';
+                }
+            });
+            
+            // Hide suggestions when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!addTimezoneBtn.contains(e.target) && !timezoneInput.contains(e.target) && !suggestionsContainer.contains(e.target)) {
+                    suggestionsContainer.style.display = 'none';
+                    activeSuggestionIndex = -1;
+                }
+            });
+            
+            // Event listeners for the local conversion button
+            localConvertBtn.addEventListener('click', () => {
+                const inputVal = localTimeInput.value.trim();
+                foreignTimeInput.value = ''; // Clear other input
+                sourceTimezoneSelect.value = 'prompt'; // Reset dropdown
+                if (inputVal === '') {
+                    showMessage('Please enter a time to convert.', 'error');
+                } else {
+                    convertLocalTime(inputVal);
+                }
+            });
+            
+            // Event listeners for the foreign conversion button
+            foreignConvertBtn.addEventListener('click', () => {
+                localTimeInput.value = ''; // Clear other input
+                convertForeignTime();
+            });
+            
+            // Event listener for the local clear button
+            localClearBtn.addEventListener('click', () => {
+                localTimeInput.value = '';
+                updateTimes();
+                // Restart the live clock
+                if (intervalId) {
+                    clearInterval(intervalId);
+                }
+                intervalId = setInterval(() => updateTimes(), 1000);
+            });
+            
+            // Event listener for the foreign clear button
+            foreignClearBtn.addEventListener('click', () => {
+                foreignTimeInput.value = '';
+                sourceTimezoneSelect.value = 'prompt';
+                updateTimes();
+                // Restart the live clock
+                if (intervalId) {
+                    clearInterval(intervalId);
+                }
+                intervalId = setInterval(() => updateTimes(), 1000);
+            });
+
+            // Event listener for the hour format toggle
+            hourFormatToggle.addEventListener('change', (e) => {
+                is24HourFormat = e.target.checked;
+                saveTimezones();
+            });
+            
+            // New event listener for the toggle button
+            toggleConversionBtn.addEventListener('click', () => {
+                conversionContainer.classList.toggle('expanded');
+                if (conversionContainer.classList.contains('expanded')) {
+                    toggleConversionBtn.textContent = 'Hide Time Conversion Tools';
+                } else {
+                    toggleConversionBtn.textContent = 'Show Time Conversion Tools';
+                }
+            });
+
+            // Initial setup
+            init();
+
+            // Start the live clock once the page is loaded and timezones are rendered
+            intervalId = setInterval(() => updateTimes(), 1000);
         });
     </script>
 </body>
