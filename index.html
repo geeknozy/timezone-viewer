@@ -222,6 +222,26 @@
             transition: all 0.2s ease-in-out;
         }
 
+        /* Mobile-specific styles for the delete button */
+        @media (max-width: 639px) { /* sm breakpoint */
+            .timezone-item {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+            .timezone-item-text {
+                flex-grow: 1;
+                flex-shrink: 1;
+                min-width: auto;
+                padding-right: 0;
+                margin-bottom: 0.5rem;
+            }
+            .delete-btn {
+                margin-top: 0.5rem;
+                flex-shrink: 0;
+            }
+        }
+
     </style>
 </head>
 <body class="bg-gray-200 text-black flex justify-center items-start min-h-screen p-8">
@@ -486,14 +506,14 @@
                 } else {
                     savedTimezones.forEach((tzObj, index) => {
                         const timezoneItem = document.createElement('div');
-                        timezoneItem.className = `timezone-item flex flex-col sm:flex-row justify-between items-center sm:items-start p-4 bg-gray-100 transition-none`;
+                        timezoneItem.className = `timezone-item flex sm:flex-row flex-col justify-between sm:items-center items-center p-4 bg-gray-100 transition-none`;
                         timezoneItem.dataset.label = tzObj.label;
                         timezoneItem.dataset.isPinned = tzObj.isPinned;
                         timezoneItem.draggable = true;
                         
                         // Main content container (pin + text/time)
                         const mainContent = document.createElement('div');
-                        mainContent.className = 'flex flex-row items-start w-full';
+                        mainContent.className = 'flex flex-row items-center w-full min-w-0 pr-4';
                         
                         const pinBtn = document.createElement('button');
                         pinBtn.className = `pin-btn flex items-center justify-center w-8 h-8 p-0 border-none bg-transparent cursor-pointer flex-shrink-0 mr-2 ${tzObj.isPinned ? 'pinned' : ''}`;
@@ -506,7 +526,7 @@
                         `;
 
                         const textDiv = document.createElement('div');
-                        textDiv.className = 'timezone-item-text flex-grow flex-shrink min-w-0 pr-4';
+                        textDiv.className = 'timezone-item-text flex-grow flex-shrink min-w-0 sm:pr-4 pr-0';
                         const strongTag = document.createElement('strong');
                         strongTag.textContent = tzObj.label;
                         const pTag = document.createElement('p');
@@ -514,11 +534,9 @@
                         pTag.innerHTML += `<br><span class="time text-lg font-bold" data-timezone="${tzObj.timezone}"></span>`;
                         textDiv.appendChild(pTag);
 
-                        // Button container to handle mobile vs. desktop layout
-                        const buttonContainer = document.createElement('div');
-                        buttonContainer.className = 'mt-4 sm:mt-0 sm:ml-4 w-full sm:w-auto flex-shrink-0';
+                        // Delete button
                         const removeBtn = document.createElement('button');
-                        removeBtn.className = 'delete-btn unified-button p-2 w-10 h-10 flex items-center justify-center';
+                        removeBtn.className = 'delete-btn unified-button p-2 w-10 h-10 flex items-center justify-center flex-shrink-0';
                         removeBtn.setAttribute('aria-label', 'Remove timezone');
                         removeBtn.innerHTML = `
                             <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -529,13 +547,10 @@
                             </svg>
                             <span class="tooltip">Remove</span>
                         `;
-                        buttonContainer.appendChild(removeBtn);
 
-                        mainContent.appendChild(pinBtn);
-                        mainContent.appendChild(textDiv);
-
-                        timezoneItem.appendChild(mainContent);
-                        timezoneItem.appendChild(buttonContainer);
+                        timezoneItem.appendChild(pinBtn);
+                        timezoneItem.appendChild(textDiv);
+                        timezoneItem.appendChild(removeBtn);
 
                         removeBtn.addEventListener('click', () => removeTimezone(tzObj.label));
                         pinBtn.addEventListener('click', () => togglePin(tzObj.label));
