@@ -424,39 +424,37 @@
                 } else {
                     savedTimezones.forEach((tzObj, index) => {
                         const timezoneItem = document.createElement('div');
+                        // Use a single flex container for better alignment
                         timezoneItem.className = `timezone-item flex justify-between items-center p-4 bg-gray-100 transition-none`;
                         timezoneItem.dataset.label = tzObj.label;
                         timezoneItem.dataset.isPinned = tzObj.isPinned;
                         timezoneItem.draggable = true;
                         
-                        const contentDiv = document.createElement('div');
-                        contentDiv.className = 'timezone-item-content flex items-center gap-4 flex-grow';
-                        
                         const pinBtn = document.createElement('button');
-                        pinBtn.className = `pin-btn flex items-center justify-center w-6 h-6 p-0 border-none bg-transparent cursor-pointer ${tzObj.isPinned ? 'pinned' : ''}`;
+                        pinBtn.className = `pin-btn flex items-center justify-center w-6 h-6 p-0 border-none bg-transparent cursor-pointer flex-shrink-0 ${tzObj.isPinned ? 'pinned' : ''}`;
                         pinBtn.setAttribute('aria-label', 'Pin timezone');
                         pinBtn.innerHTML = `
                             <svg class="pin-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
                                 <path d="M14 4h-4v9.64l-2 1.4V16h8v-0.96l-2-1.4V4zM12 2C9.24 2 7 4.24 7 7c0 1.2.4 2.3 1.08 3.2L5 13.91V22h14v-8.09L15.92 10.2c.68-.9 1.08-2 1.08-3.2C17 4.24 14.76 2 12 2z"/>
                             </svg>
                         `;
-                        contentDiv.appendChild(pinBtn);
-                        
+
                         const textDiv = document.createElement('div');
-                        textDiv.className = 'timezone-item-text flex-grow';
+                        textDiv.className = 'timezone-item-text flex-grow flex-shrink min-w-0 pr-4';
                         const strongTag = document.createElement('strong');
                         strongTag.textContent = tzObj.label;
                         const pTag = document.createElement('p');
                         pTag.appendChild(strongTag);
                         pTag.innerHTML += `<br><span class="time text-lg font-bold" data-timezone="${tzObj.timezone}"></span>`;
                         textDiv.appendChild(pTag);
-                        contentDiv.appendChild(textDiv);
-                        
-                        timezoneItem.appendChild(contentDiv);
 
                         const removeBtn = document.createElement('button');
                         removeBtn.className = 'remove-btn unified-button flex-shrink-0';
                         removeBtn.textContent = 'Remove';
+                        
+                        // Append elements directly to the timezoneItem
+                        timezoneItem.appendChild(pinBtn);
+                        timezoneItem.appendChild(textDiv);
                         timezoneItem.appendChild(removeBtn);
 
                         removeBtn.addEventListener('click', () => removeTimezone(tzObj.label));
