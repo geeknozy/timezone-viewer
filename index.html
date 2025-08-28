@@ -171,10 +171,10 @@
         </header>
 
         <!-- Form for adding a new timezone -->
-        <div class="add-timezone-form relative flex gap-4 mb-8">
-            <input type="text" id="timezoneInput" placeholder="Add a city or timezone (e.g., 'Asia/Kolkata')" class="unified-input">
+        <div class="add-timezone-form relative flex flex-col sm:flex-row gap-4 mb-8">
+            <input type="text" id="timezoneInput" placeholder="Add a city or timezone (e.g., 'Asia/Kolkata')" class="unified-input flex-grow">
             <div id="suggestions" class="absolute top-full left-0 right-0 bg-white border border-t-0 max-h-48 overflow-y-auto z-10 hidden"></div>
-            <button id="addTimezoneBtn" class="unified-button flex-shrink-0">Add</button>
+            <button id="addTimezoneBtn" class="unified-button flex-shrink-0 w-full sm:w-auto">Add</button>
         </div>
         
         <div class="message-box p-4 mb-6 hidden" id="messageBox"></div>
@@ -196,7 +196,7 @@
                     </div>
                     <input type="text" id="foreignTimeInput" placeholder="e.g., 10:30 AM or 14:00" class="unified-input">
                 </div>
-                <div class="conversion-btn-group flex gap-4 mt-4">
+                <div class="conversion-btn-group flex flex-col sm:flex-row gap-4 mt-4">
                     <button id="foreignConvertBtn" class="unified-button w-full">Convert</button>
                     <button id="foreignClearBtn" class="unified-button w-full">Clear</button>
                 </div>
