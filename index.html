@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Comprehensive Timezone Viewer</title>
+    <title>Simple Timezone Viewer</title>
     <style>
         /* Base styling for a black and white theme with a retro feel */
         body {
@@ -97,7 +97,6 @@
         
         /* Unified style for all text inputs and select dropdowns */
         .conversion-form input[type="text"],
-        .conversion-form select,
         .add-timezone-form input[type="text"],
         .conversion-section input[type="text"] {
             height: 2.5rem; /* Standardized height */
@@ -355,7 +354,62 @@
         
         #conversionContainer.expanded {
             max-height: 600px; /* A value large enough to hold the content */
+            overflow: visible; /* Important to make dropdown visible */
         }
+        
+        /* Custom dropdown styles */
+        .custom-dropdown-container {
+            position: relative;
+            width: 100%;
+            box-sizing: border-box;
+            cursor: pointer;
+            z-index: 10; /* Set a high z-index to be on top */
+        }
+        
+        .custom-dropdown-header {
+            height: 2.5rem; /* Standardized height */
+            padding: 0 0.75rem; /* Uniform horizontal padding */
+            font-size: 1rem;
+            border: 2px inset #000000;
+            border-radius: 0;
+            background-color: #ffffff;
+            color: #000000;
+            box-shadow: none;
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .custom-dropdown-header::after {
+            content: '▼';
+            font-size: 0.8rem;
+        }
+        
+        .custom-dropdown-list {
+            position: absolute;
+            top: 100%; /* Change back to top: 100% to drop down */
+            left: 0;
+            right: 0;
+            background-color: #ffffff;
+            border: 2px inset #000000;
+            border-top: none;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 10;
+            display: none;
+        }
+        
+        .custom-dropdown-list-item {
+            padding: 0.5rem;
+            cursor: pointer;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .custom-dropdown-list-item:hover, .custom-dropdown-list-item.selected {
+            background-color: #f0f0f0;
+        }
+        
     </style>
     <script>
         // Use Google Fonts for Roboto and Open Sans
@@ -369,7 +423,7 @@
 
     <div class="container">
         <header class="header">
-            <h1>Comprehensive Timezone Viewer</h1>
+            <h1>Simple Timezone Viewer</h1>
         </header>
 
         <!-- Form for adding a new timezone -->
@@ -391,9 +445,11 @@
             <div class="conversion-section">
                 <p><strong>Convert time from selected timezone</strong></p>
                 <div class="conversion-form" style="margin-bottom: 0;">
-                    <select id="sourceTimezoneSelect">
-                        <option value="prompt">Select a timezone...</option>
-                    </select>
+                    <!-- Custom Dropdown for Source Timezone -->
+                    <div class="custom-dropdown-container" id="sourceTimezoneDropdown">
+                        <div class="custom-dropdown-header" id="sourceDropdownHeader">Select a timezone...</div>
+                        <div class="custom-dropdown-list" id="sourceDropdownList"></div>
+                    </div>
                     <input type="text" id="foreignTimeInput" placeholder="e.g., 10:30 AM or 14:00">
                 </div>
                 <div class="conversion-btn-group">
@@ -428,7 +484,6 @@
             const suggestionsContainer = document.getElementById('suggestions');
             const addTimezoneBtn = document.getElementById('addTimezoneBtn');
             const foreignTimeInput = document.getElementById('foreignTimeInput');
-            const sourceTimezoneSelect = document.getElementById('sourceTimezoneSelect');
             const timezoneListContainer = document.getElementById('timezoneListContainer');
             const messageBox = document.getElementById('messageBox');
             const hourFormatToggle = document.getElementById('hourFormatToggle');
@@ -436,11 +491,17 @@
             const foreignClearBtn = document.getElementById('foreignClearBtn');
             const toggleConversionBtn = document.getElementById('toggleConversionBtn');
             const conversionContainer = document.getElementById('conversionContainer');
+            
+            // Custom dropdown elements
+            const sourceTimezoneDropdown = document.getElementById('sourceTimezoneDropdown');
+            const sourceDropdownHeader = document.getElementById('sourceDropdownHeader');
+            const sourceDropdownList = document.getElementById('sourceDropdownList');
+            
             let savedTimezones = [];
-            let intervalId = null; // This variable will now be used to store the interval ID
+            let intervalId = null; 
             let is24HourFormat = false;
             let draggedItem = null;
-            let activeSuggestionIndex = -1; // New state for keyboard navigation
+            let activeSuggestionIndex = -1;
             
             // Map of common abbreviations to a representative full timezone name
             const abbreviationMap = {
@@ -484,7 +545,7 @@
                 }
                 setTimeout(() => {
                     messageBox.className = 'message-box';
-                }, 3000); // Hide message after 3 seconds
+                }, 3000);
             };
             
             // Function to check if local storage is available
@@ -554,6 +615,7 @@
                     hourFormatToggle.checked = is24HourFormat;
                 }
                 renderTimezones();
+                populateCustomDropdown();
             };
 
             // Function to save timezones and preferences to local storage
@@ -563,7 +625,6 @@
                         localStorage.setItem('timezones', JSON.stringify(savedTimezones));
                         localStorage.setItem('is24HourFormat', JSON.stringify(is24HourFormat));
                     } catch (e) {
-                        // In case localStorage quota is exceeded or an error occurs
                         console.error("Could not save to localStorage:", e);
                     }
                 }
@@ -599,47 +660,25 @@
                 try {
                     const testDate = new Date();
                     const options = { timeZone: fullTimezone };
-                    testDate.toLocaleString('en-US', options); // This will throw an error for invalid timezones
+                    testDate.toLocaleString('en-US', options);
                     
-                    // Save both the user-entered label and the full timezone name
                     savedTimezones.push({ label: timezoneInputVal, timezone: fullTimezone, isPinned: false });
                     saveTimezones();
                     renderTimezones();
+                    populateCustomDropdown();
                     showMessage(`Added timezone for "${timezoneInputVal}".`);
-                    timezoneInput.value = ''; // Clear the input field
+                    timezoneInput.value = '';
                     suggestionsContainer.style.display = 'none';
-                    activeSuggestionIndex = -1; // Reset active suggestion index
+                    activeSuggestionIndex = -1;
                 } catch (e) {
                     showMessage(`Invalid timezone: "${timezoneInputVal}". Please try again.`, 'error');
                 }
             };
 
-            // Function to render the list of timezones and populate the source dropdown
+            // Function to render the list of timezones
             const renderTimezones = () => {
                 timezoneListContainer.innerHTML = '';
                 sortTimezones();
-                
-                // Preserve the currently selected value before re-rendering
-                const currentSelection = sourceTimezoneSelect.value;
-                
-                // Populate the source timezone select dropdown
-                sourceTimezoneSelect.innerHTML = '<option value="prompt">Select a timezone...</option>';
-                // Add the user's local timezone
-                const localTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-                const localOption = document.createElement('option');
-                localOption.value = localTz;
-                localOption.textContent = `Local Timezone (${localTz})`;
-                sourceTimezoneSelect.appendChild(localOption);
-                
-                savedTimezones.forEach(tzObj => {
-                    const option = document.createElement('option');
-                    option.value = tzObj.timezone;
-                    option.textContent = tzObj.label;
-                    sourceTimezoneSelect.appendChild(option);
-                });
-
-                // Restore the selected value after re-rendering
-                sourceTimezoneSelect.value = currentSelection;
                 
                 if (savedTimezones.length === 0) {
                     const noTimezonesMsg = document.createElement('p');
@@ -671,10 +710,10 @@
                         const textDiv = document.createElement('div');
                         textDiv.className = 'timezone-item-text';
                         const strongTag = document.createElement('strong');
-                        strongTag.textContent = tzObj.label; // Securely set text content
+                        strongTag.textContent = tzObj.label;
                         const pTag = document.createElement('p');
                         pTag.appendChild(strongTag);
-                        pTag.innerHTML += `<br><span class="time" data-timezone="${tzObj.timezone}"></span>`; // The span is not user-provided
+                        pTag.innerHTML += `<br><span class="time" data-timezone="${tzObj.timezone}"></span>`;
                         textDiv.appendChild(pTag);
                         contentDiv.appendChild(textDiv);
                         
@@ -692,7 +731,7 @@
                         timezoneListContainer.appendChild(timezoneItem);
                     });
                 }
-                updateTimes(); // Initial call
+                updateTimes();
             };
 
             // Function to toggle the pinned state of a timezone
@@ -702,13 +741,12 @@
                     tzObj.isPinned = !tzObj.isPinned;
                     saveTimezones();
                     renderTimezones();
+                    populateCustomDropdown();
                 }
             };
             
             // Function to update the time for each timezone
             const updateTimes = (inputDate = null) => {
-                // If a specific date is provided, update all clocks to that time.
-                // Otherwise, use the live clock.
                 if (inputDate) {
                     const timeElements = document.querySelectorAll('.timezone-item .time');
                     timeElements.forEach(el => {
@@ -720,14 +758,13 @@
                             };
                             const timeString = new Intl.DateTimeFormat('en-US', options).format(inputDate);
                             el.textContent = timeString;
-                            el.style.color = ''; // Reset color on success
+                            el.style.color = '';
                         } catch (e) {
                             el.textContent = 'Invalid Timezone';
                             el.style.color = 'red';
                         }
                     });
                 } else {
-                    // Update the live clock
                     const timeElements = document.querySelectorAll('.timezone-item .time');
                     const now = new Date();
                     timeElements.forEach(el => {
@@ -739,7 +776,7 @@
                             };
                             const timeString = new Intl.DateTimeFormat('en-US', options).format(now);
                             el.textContent = timeString;
-                            el.style.color = ''; // Reset color on success
+                            el.style.color = '';
                         } catch (e) {
                             el.textContent = 'Invalid Timezone';
                             el.style.color = 'red';
@@ -751,19 +788,17 @@
             // Function to parse a foreign time and convert it to all timezones
             const convertForeignTime = () => {
                 const foreignTimeStr = foreignTimeInput.value.trim();
-                const sourceTz = sourceTimezoneSelect.value;
+                const sourceTz = sourceDropdownHeader.dataset.value;
                 
                 if (!foreignTimeStr || sourceTz === "prompt") {
                     showMessage('Please enter a time and select a source timezone.', 'error');
                     return;
                 }
                 
-                // Stop the live clock
                 if (intervalId) {
                     clearInterval(intervalId);
                 }
                 
-                // Parse the input time.
                 const ampmMatch = foreignTimeStr.match(/^(\d{1,2}):(\d{2})\s*([AP]M)/i);
                 const militaryMatch = foreignTimeStr.match(/^(\d{1,2}):(\d{2})$/);
 
@@ -789,22 +824,17 @@
                     return;
                 }
 
-                // Get a date object in the source timezone, and then convert it
                 try {
                     const localTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
                     
-                    // Create a date object based on the current date, adjusted for the foreign timezone
                     const localNow = new Date();
-                    
-                    // The difference in hours between the two timezones
                     const nowInForeignUTC = new Date(localNow.toLocaleString('en-US', { timeZone: sourceTz }));
                     const nowInLocalUTC = new Date(localNow.toLocaleString('en-US', { timeZone: localTimezone }));
                     const offsetMs = nowInForeignUTC.getTime() - nowInLocalUTC.getTime();
 
-                    // Create a date object with the user's input time in the local timezone, then adjust it
                     const convertedDate = new Date();
                     convertedDate.setHours(hours, minutes, 0, 0);
-                    convertedDate.setTime(convertedDate.getTime() - offsetMs); // Subtract the offset to convert from foreign to local
+                    convertedDate.setTime(convertedDate.getTime() - offsetMs);
                     
                     updateTimes(convertedDate);
 
@@ -819,11 +849,10 @@
                 savedTimezones = savedTimezones.filter(tzObj => tzObj.label !== labelToRemove);
                 saveTimezones();
                 renderTimezones();
-                // After removal, update times based on the remaining inputs
+                populateCustomDropdown();
                 if (foreignTimeInput.value.trim() !== '') {
                     convertForeignTime();
                 } else {
-                    // If no inputs, revert to the current time
                     updateTimes();
                 }
             };
@@ -851,7 +880,7 @@
                     const next = (e.clientY - rect.top) / (rect.bottom - rect.top) > .5;
                     
                     if (draggedItem.dataset.isPinned !== target.dataset.isPinned) {
-                        return; // Prevent dragging between pinned and unpinned groups
+                        return;
                     }
 
                     if (next) {
@@ -872,7 +901,7 @@
 
             // Function to update the order in the savedTimezones array based on the DOM
             const updateSavedOrder = () => {
-                const itemsInDom = Array.from(timezoneListContainer.children);
+                const itemsInDom = Array.from(timezoneListContainer.children).filter(el => el.classList.contains('timezone-item'));
                 const newOrder = itemsInDom.map(item => item.dataset.label);
                 
                 const newSavedTimezones = newOrder.map(label => savedTimezones.find(tz => tz.label === label));
@@ -910,10 +939,8 @@
                     e.preventDefault();
                     let valueToAdd;
                     if (activeSuggestionIndex !== -1 && suggestions[activeSuggestionIndex]) {
-                        // If a suggestion is highlighted, use its text
                         valueToAdd = suggestions[activeSuggestionIndex].textContent;
                     } else {
-                        // Otherwise, use the text from the input field
                         valueToAdd = timezoneInput.value.trim();
                     }
                     if (valueToAdd) {
@@ -942,7 +969,7 @@
             timezoneInput.addEventListener('input', () => {
                 const query = timezoneInput.value.trim().toLowerCase();
                 suggestionsContainer.innerHTML = '';
-                activeSuggestionIndex = -1; // Reset index when input changes
+                activeSuggestionIndex = -1;
                 
                 if (query.length > 0) {
                     const filteredTimezones = allTimezones.filter(tz => tz.toLowerCase().includes(query));
@@ -959,7 +986,6 @@
                             suggestionsContainer.appendChild(suggestionItem);
                         });
                         
-                        // New logic: auto-select single suggestion
                         if (filteredTimezones.length === 1) {
                             activeSuggestionIndex = 0;
                             updateActiveSuggestion();
@@ -981,6 +1007,63 @@
                 }
             });
             
+            // New functions for the custom dropdown
+            const populateCustomDropdown = () => {
+                sourceDropdownList.innerHTML = '';
+                
+                const localTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                const localOption = document.createElement('div');
+                localOption.className = 'custom-dropdown-list-item';
+                localOption.textContent = `Local Timezone (${localTz})`;
+                localOption.dataset.value = localTz;
+                sourceDropdownList.appendChild(localOption);
+                
+                savedTimezones.forEach(tzObj => {
+                    const option = document.createElement('div');
+                    option.className = 'custom-dropdown-list-item';
+                    option.textContent = tzObj.label;
+                    option.dataset.value = tzObj.timezone;
+                    sourceDropdownList.appendChild(option);
+                });
+                
+                // Set the default selected value
+                sourceDropdownHeader.textContent = 'Select a timezone...';
+                sourceDropdownHeader.dataset.value = 'prompt';
+            };
+            
+            // Event listener to toggle the custom dropdown list
+            sourceDropdownHeader.addEventListener('click', () => {
+                sourceDropdownList.style.display = sourceDropdownList.style.display === 'block' ? 'none' : 'block';
+            });
+            
+            // Event listener for selecting an item from the custom dropdown list
+            sourceDropdownList.addEventListener('click', (e) => {
+                const selectedItem = e.target.closest('.custom-dropdown-list-item');
+                if (selectedItem) {
+                    const selectedValue = selectedItem.dataset.value;
+                    const selectedText = selectedItem.textContent;
+                    
+                    sourceDropdownHeader.textContent = selectedText;
+                    sourceDropdownHeader.dataset.value = selectedValue;
+                    
+                    // Add a 'selected' class to the active item
+                    const currentSelected = sourceDropdownList.querySelector('.selected');
+                    if (currentSelected) {
+                        currentSelected.classList.remove('selected');
+                    }
+                    selectedItem.classList.add('selected');
+                    
+                    sourceDropdownList.style.display = 'none';
+                }
+            });
+            
+            // Close dropdown if clicked outside
+            document.addEventListener('click', (e) => {
+                if (!sourceTimezoneDropdown.contains(e.target)) {
+                    sourceDropdownList.style.display = 'none';
+                }
+            });
+            
             // Event listeners for the foreign conversion button
             foreignConvertBtn.addEventListener('click', () => {
                 convertForeignTime();
@@ -989,9 +1072,13 @@
             // Event listener for the foreign clear button
             foreignClearBtn.addEventListener('click', () => {
                 foreignTimeInput.value = '';
-                sourceTimezoneSelect.value = 'prompt';
+                sourceDropdownHeader.textContent = 'Select a timezone...';
+                sourceDropdownHeader.dataset.value = 'prompt';
+                const currentSelected = sourceDropdownList.querySelector('.selected');
+                if (currentSelected) {
+                        currentSelected.classList.remove('selected');
+                }
                 updateTimes();
-                // Restart the live clock
                 if (intervalId) {
                     clearInterval(intervalId);
                 }
@@ -1004,7 +1091,7 @@
                 saveTimezones();
             });
             
-            // New event listener for the toggle button
+            // Event listener for the toggle button
             toggleConversionBtn.addEventListener('click', () => {
                 conversionContainer.classList.toggle('expanded');
                 if (conversionContainer.classList.contains('expanded')) {
