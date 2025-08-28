@@ -641,7 +641,10 @@
                 sourceTimezoneSelect.innerHTML = '<option value="prompt">Select a timezone...</option>';
                 // Add the user's local timezone
                 const localTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-                sourceTimezoneSelect.innerHTML += `<option value="${localTz}">Local Timezone (${localTz})</option>`;
+                const localOption = document.createElement('option');
+                localOption.value = localTz;
+                localOption.textContent = `Local Timezone (${localTz})`;
+                sourceTimezoneSelect.appendChild(localOption);
                 
                 savedTimezones.forEach(tzObj => {
                     const option = document.createElement('option');
@@ -654,7 +657,10 @@
                 sourceTimezoneSelect.value = currentSelection;
                 
                 if (savedTimezones.length === 0) {
-                    timezoneListContainer.innerHTML = '<p style="text-align: center; color: #555;">No timezones added yet.</p>';
+                    const noTimezonesMsg = document.createElement('p');
+                    noTimezonesMsg.style.cssText = 'text-align: center; color: #555;';
+                    noTimezonesMsg.textContent = 'No timezones added yet.';
+                    timezoneListContainer.appendChild(noTimezonesMsg);
                 } else {
                     savedTimezones.forEach((tzObj, index) => {
                         const timezoneItem = document.createElement('div');
@@ -663,24 +669,40 @@
                         timezoneItem.dataset.isPinned = tzObj.isPinned;
                         timezoneItem.draggable = true;
                         
-                        // Create the inner HTML with the pin button
-                        timezoneItem.innerHTML = `
-                            <div class="timezone-item-content">
-                                <button class="pin-btn ${tzObj.isPinned ? 'pinned' : ''}" aria-label="Pin timezone">
-                                    <svg class="pin-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
-                                        <path d="M14 4h-4v9.64l-2 1.4V16h8v-0.96l-2-1.4V4zM12 2C9.24 2 7 4.24 7 7c0 1.2.4 2.3 1.08 3.2L5 13.91V22h14v-8.09L15.92 10.2c.68-.9 1.08-2 1.08-3.2C17 4.24 14.76 2 12 2z"/>
-                                    </svg>
-                                </button>
-                                <div class="timezone-item-text">
-                                    <p><strong>${tzObj.label}</strong><br><span class="time" data-timezone="${tzObj.timezone}"></span></p>
-                                </div>
-                            </div>
-                            <button class="remove-btn">Remove</button>
+                        // Create and append inner elements securely
+                        const contentDiv = document.createElement('div');
+                        contentDiv.className = 'timezone-item-content';
+                        
+                        const pinBtn = document.createElement('button');
+                        pinBtn.className = `pin-btn ${tzObj.isPinned ? 'pinned' : ''}`;
+                        pinBtn.setAttribute('aria-label', 'Pin timezone');
+                        pinBtn.innerHTML = `
+                            <svg class="pin-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+                                <path d="M14 4h-4v9.64l-2 1.4V16h8v-0.96l-2-1.4V4zM12 2C9.24 2 7 4.24 7 7c0 1.2.4 2.3 1.08 3.2L5 13.91V22h14v-8.09L15.92 10.2c.68-.9 1.08-2 1.08-3.2C17 4.24 14.76 2 12 2z"/>
+                            </svg>
                         `;
+                        contentDiv.appendChild(pinBtn);
+                        
+                        const textDiv = document.createElement('div');
+                        textDiv.className = 'timezone-item-text';
+                        const strongTag = document.createElement('strong');
+                        strongTag.textContent = tzObj.label; // Securely set text content
+                        const pTag = document.createElement('p');
+                        pTag.appendChild(strongTag);
+                        pTag.innerHTML += `<br><span class="time" data-timezone="${tzObj.timezone}"></span>`; // The span is not user-provided
+                        textDiv.appendChild(pTag);
+                        contentDiv.appendChild(textDiv);
+                        
+                        timezoneItem.appendChild(contentDiv);
+
+                        const removeBtn = document.createElement('button');
+                        removeBtn.className = 'remove-btn';
+                        removeBtn.textContent = 'Remove';
+                        timezoneItem.appendChild(removeBtn);
 
                         // Add event listeners for the buttons
-                        timezoneItem.querySelector('.remove-btn').addEventListener('click', () => removeTimezone(tzObj.label));
-                        timezoneItem.querySelector('.pin-btn').addEventListener('click', () => togglePin(tzObj.label));
+                        removeBtn.addEventListener('click', () => removeTimezone(tzObj.label));
+                        pinBtn.addEventListener('click', () => togglePin(tzObj.label));
 
                         timezoneListContainer.appendChild(timezoneItem);
                     });
