@@ -243,7 +243,6 @@
                 flex-shrink: 0;
             }
         }
-
     </style>
 </head>
 <body class="bg-gray-200 text-black flex justify-center items-start min-h-screen p-8">
@@ -559,7 +558,7 @@
 
                         // No longer adding event listeners inside the loop
                         // removeBtn.addEventListener('click', () => removeTimezone(tzObj.label));
-                        pinBtn.addEventListener('click', () => togglePin(tzObj.label));
+                        // pinBtn.addEventListener('click', () => togglePin(tzObj.label));
 
                         timezoneListContainer.appendChild(timezoneItem);
                     });
@@ -720,9 +719,23 @@
 
             // Touch-based drag and drop logic
             timezoneListContainer.addEventListener('touchstart', (e) => {
+                const target = e.target;
+                // If the touch starts on a button, do not start drag logic.
+                // This allows the browser's native click handling to proceed.
+                if (target.closest('.pin-btn') || target.closest('.delete-btn')) {
+                    draggedItem = null;
+                    touchMoved = false;
+                    return;
+                }
+                
                 draggedItem = e.target.closest('.timezone-item');
-                if (!draggedItem || draggedItem.dataset.isPinned === 'true') return;
-                e.preventDefault(); // Prevents default touch behavior like scrolling
+                if (!draggedItem || draggedItem.dataset.isPinned === 'true') {
+                    draggedItem = null;
+                    return;
+                }
+                
+                // Only prevent default on the drag item itself, not the buttons
+                // e.preventDefault();
                 touchStartX = e.touches[0].clientX;
                 touchStartY = e.touches[0].clientY;
                 touchMoved = false;
@@ -971,11 +984,19 @@
             timezoneListContainer.addEventListener('click', (e) => {
                 const target = e.target;
                 const deleteButton = target.closest('.delete-btn');
+                const pinButton = target.closest('.pin-btn');
+
                 if (deleteButton) {
                     const timezoneItem = deleteButton.closest('.timezone-item');
                     if (timezoneItem) {
                         const label = timezoneItem.dataset.label;
                         removeTimezone(label);
+                    }
+                } else if (pinButton) {
+                    const timezoneItem = pinButton.closest('.timezone-item');
+                    if (timezoneItem) {
+                        const label = timezoneItem.dataset.label;
+                        togglePin(label);
                     }
                 }
             });
