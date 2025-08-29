@@ -261,6 +261,21 @@
 
         <hr class="separator border-t-2 border-black my-8">
         
+        <!-- Time format toggle -->
+        <div class="format-toggle text-center mb-4 flex items-center justify-center gap-2">
+            <input type="checkbox" id="hourFormatToggle">
+            <label for="hourFormatToggle" class="text-base cursor-pointer">24-Hour Format</label>
+        </div>
+        
+        <p class="drag-instruction text-center italic text-gray-500 text-sm mb-4">Drag and drop to reorder, or click the thumbtack to pin.</p>
+
+        <!-- List to display added timezones -->
+        <div class="timezone-list flex flex-col gap-4" id="timezoneListContainer">
+            <!-- Timezones will be added here dynamically -->
+        </div>
+
+        <hr class="separator border-t-2 border-black my-8">
+        
         <!-- Toggle button for conversion features -->
         <button class="toggle-btn unified-button w-full mb-6" id="toggleConversionBtn">Show Time Conversion Tools</button>
 
@@ -281,21 +296,6 @@
                     <button id="foreignClearBtn" class="unified-button w-full">Clear</button>
                 </div>
             </div>
-        </div>
-        
-        <hr class="separator border-t-2 border-black my-8">
-
-        <!-- Time format toggle -->
-        <div class="format-toggle text-center mb-4 flex items-center justify-center gap-2">
-            <input type="checkbox" id="hourFormatToggle">
-            <label for="hourFormatToggle" class="text-base cursor-pointer">24-Hour Format</label>
-        </div>
-        
-        <p class="drag-instruction text-center italic text-gray-500 text-sm mb-4">Drag and drop to reorder, or click the thumbtack to pin.</p>
-
-        <!-- List to display added timezones -->
-        <div class="timezone-list flex flex-col gap-4" id="timezoneListContainer">
-            <!-- Timezones will be added here dynamically -->
         </div>
     </div>
 
@@ -324,6 +324,8 @@
             let activeSuggestionIndex = -1;
             let sourceActiveSuggestionIndex = -1;
             let touchMoved = false;
+            let touchTimer = null; // New timer for touch delay
+            const TOUCH_DRAG_DELAY = 200; // 200ms delay for a touch to become a drag
 
             // Map of common abbreviations to a representative full timezone name
             const abbreviationMap = {
@@ -700,32 +702,36 @@
                 }
             });
 
-            // Touch-based drag and drop logic
+            // Touch-based drag and drop logic with a delay
             timezoneListContainer.addEventListener('touchstart', (e) => {
                 // IMPORTANT: If the touch starts on a button, do not activate drag logic
                 if (e.target.closest('.pin-btn, .delete-btn')) {
                     return;
                 }
                 
-                draggedItem = e.target.closest('.timezone-item');
-                if (!draggedItem || draggedItem.dataset.isPinned === 'true') {
-                    draggedItem = null;
+                const item = e.target.closest('.timezone-item');
+                if (!item || item.dataset.isPinned === 'true') {
                     return;
                 }
 
-                e.preventDefault(); // Prevent default browser actions for the drag
-                const touch = e.touches[0];
-                const touchStartX = touch.clientX;
-                const touchStartY = touch.clientY;
-                touchMoved = false;
-                draggedItem.style.position = 'fixed';
-                draggedItem.style.left = touchStartX - draggedItem.offsetWidth / 2 + 'px';
-                draggedItem.style.top = touchStartY - draggedItem.offsetHeight / 2 + 'px';
-                draggedItem.classList.add('dragging');
+                // Start a timer to initiate the drag after a delay
+                touchTimer = setTimeout(() => {
+                    draggedItem = item;
+                    touchMoved = false;
+                    draggedItem.style.position = 'fixed';
+                    const touch = e.touches[0];
+                    draggedItem.style.left = touch.clientX - draggedItem.offsetWidth / 2 + 'px';
+                    draggedItem.style.top = touch.clientY - draggedItem.offsetHeight / 2 + 'px';
+                    draggedItem.classList.add('dragging');
+                }, TOUCH_DRAG_DELAY);
 
             }, { passive: false });
 
             timezoneListContainer.addEventListener('touchmove', (e) => {
+                // Clear the timer if the user moves their finger before the delay is up
+                clearTimeout(touchTimer);
+                touchTimer = null;
+
                 if (!draggedItem) return;
                 e.preventDefault();
                 touchMoved = true;
@@ -752,6 +758,10 @@
             }, { passive: false });
 
             timezoneListContainer.addEventListener('touchend', (e) => {
+                // Clear the timer whether the drag started or not
+                clearTimeout(touchTimer);
+                touchTimer = null;
+                
                 if (!draggedItem) return;
                 
                 // Reset styling and update order
@@ -770,10 +780,12 @@
             // Function to update the order in the savedTimezones array based on the DOM
             const updateSavedOrder = () => {
                 const itemsInDom = Array.from(timezoneListContainer.children).filter(el => el.classList.contains('timezone-item'));
-                const newOrder = itemsInDom.map(item => item.dataset.label);
+                const newOrder = itemsInDom.map(item => savedTimezones.find(tz => tz.label === item.dataset.label));
                 
-                const newSavedTimezones = newOrder.map(label => savedTimezones.find(tz => tz.label === label));
-                savedTimezones = newSavedTimezones;
+                // Filter out any items that might have been removed during the drag
+                const validNewOrder = newOrder.filter(item => item !== undefined);
+                
+                savedTimezones = validNewOrder;
                 saveTimezones();
             };
 
