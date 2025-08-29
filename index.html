@@ -57,14 +57,15 @@
             border-radius: 0;
             color: #000000;
             box-sizing: border-box;
+            transition: all 0.1s ease-in-out;
         }
 
-        .unified-button:hover {
+        .unified-button:hover, .unified-button:active {
             border: 2px inset #000000;
             background-color: #e0e0e0;
         }
         
-        .toggle-btn:hover {
+        .toggle-btn:hover, .toggle-btn:active {
             border: 2px inset #000000;
             background-color: #e0e0e0;
         }
@@ -138,23 +139,9 @@
             border: 2px inset #cccccc;
             background-color: #dddddd;
         }
-
-        /* Styling for the new thumbtack icon */
-        .pin-btn {
-            position: relative;
-        }
         
-        /* Default state: light gray icon (un-pinned) */
-        .pin-btn .fa-thumbtack {
-            color: #a0a0a0;
-        }
-        
-        /* Pinned state: filled black icon */
-        .pin-btn.pinned .fa-thumbtack {
-            color: #000000;
-        }
-        
-        .pin-btn .tooltip {
+        /* Tooltip styles */
+        .pin-btn .tooltip, .delete-btn .tooltip {
             visibility: hidden;
             background-color: #000;
             color: #fff;
@@ -170,8 +157,8 @@
             opacity: 0;
             transition: opacity 0.3s;
         }
-
-        .pin-btn:hover .tooltip {
+        
+        .pin-btn:hover .tooltip, .delete-btn:hover .tooltip {
             visibility: visible;
             opacity: 1;
         }
@@ -187,60 +174,70 @@
             max-height: 600px;
             overflow: visible;
         }
-
-        .delete-btn {
-            position: relative;
+        
+        /* New styles for better mobile touch targets */
+        .action-button {
+            width: 36px; /* Standard touch target size */
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            margin: 0 4px; /* Add some spacing between buttons */
+            cursor: pointer;
+            border: 2px outset #000000;
+            background-color: #ffffff;
+            border-radius: 0;
+            transition: all 0.1s ease-in-out;
+        }
+        .action-button:hover, .action-button:active {
+            border: 2px inset #000000;
+            background-color: #e0e0e0;
         }
         
-        .delete-btn .tooltip {
-            visibility: hidden;
-            background-color: #000;
-            color: #fff;
-            text-align: center;
-            border-radius: 6px;
-            padding: 5px 8px;
-            position: absolute;
-            z-index: 10;
-            top: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            white-space: nowrap;
-            opacity: 0;
-            transition: opacity 0.3s;
+        /* Styling for the Font Awesome icons */
+        .fa-thumbtack, .fa-trash-can {
+            font-size: 1rem; /* Reduced size */
+            transition: color 0.2s ease-in-out;
         }
 
-        .delete-btn:hover .tooltip {
-            visibility: visible;
-            opacity: 1;
+        /* Default state: light gray icon (un-pinned) */
+        .fa-thumbtack {
+            color: #a0a0a0;
         }
         
-        /* Transparent dustbin icon */
-        .delete-btn svg {
-            fill: transparent;
-            stroke: currentColor;
-            stroke-width: 2px;
-            transition: all 0.2s ease-in-out;
+        /* Pinned state: filled black icon */
+        .pin-btn.pinned .fa-thumbtack {
+            color: #000000;
         }
-
-        /* Mobile-specific styles for the delete button */
+        
+        .delete-btn .fa-trash-can {
+            color: #888888;
+        }
+        .delete-btn:hover .fa-trash-can {
+            color: #000000;
+        }
+        
+        /* Mobile-specific styles for the entire item */
         @media (max-width: 639px) { /* sm breakpoint */
             .timezone-item {
-                flex-direction: column;
+                flex-direction: row; /* Keep buttons and text in a row */
                 align-items: center;
-                text-align: center;
+                text-align: left;
             }
             .timezone-item-text {
                 flex-grow: 1;
                 flex-shrink: 1;
                 padding-right: 0;
-                margin-bottom: 0.5rem;
+                margin-right: auto; /* Push the buttons to the right */
             }
-            .pin-btn {
-                margin-bottom: 0.5rem; /* Add some space between pin and text */
+            .pin-btn, .delete-btn {
+                margin: 0 0.5rem; /* Better spacing for buttons on mobile */
+                width: 36px;
+                height: 36px;
             }
-            .delete-btn {
-                margin-top: 0.5rem;
-                flex-shrink: 0;
+            .pin-btn .fa-thumbtack, .delete-btn .fa-trash-can {
+                font-size: 1rem;
             }
         }
     </style>
@@ -316,7 +313,7 @@
             const toggleConversionBtn = document.getElementById('toggleConversionBtn');
             const conversionContainer = document.getElementById('conversionContainer');
 
-            // NEW: Time conversion input and suggestions
+            // Time conversion input and suggestions
             const sourceTimezoneInput = document.getElementById('sourceTimezoneInput');
             const sourceSuggestions = document.getElementById('sourceSuggestions');
             
@@ -325,9 +322,7 @@
             let is24HourFormat = false;
             let draggedItem = null;
             let activeSuggestionIndex = -1;
-            let sourceActiveSuggestionIndex = -1; // New index for the source suggestions
-            let touchStartX = 0;
-            let touchStartY = 0;
+            let sourceActiveSuggestionIndex = -1;
             let touchMoved = false;
 
             // Map of common abbreviations to a representative full timezone name
@@ -362,7 +357,7 @@
             // Function to display messages to the user
             const showMessage = (message, type = 'info') => {
                 messageBox.textContent = message;
-                messageBox.classList.add('show');
+                messageBox.classList.remove('hidden');
                 if (type === 'error') {
                     messageBox.classList.add('text-red-600', 'border-red-600');
                     messageBox.classList.remove('text-green-600', 'border-green-600');
@@ -371,7 +366,7 @@
                     messageBox.classList.remove('text-red-600', 'border-red-600');
                 }
                 setTimeout(() => {
-                    messageBox.classList.remove('show', 'text-red-600', 'border-red-600', 'text-green-600', 'border-green-600');
+                    messageBox.classList.add('hidden');
                 }, 3000);
             };
             
@@ -515,19 +510,19 @@
                         timezoneItem.dataset.isPinned = tzObj.isPinned;
                         timezoneItem.draggable = true;
                         
-                        // Main content container (pin + text/time)
-                        const mainContent = document.createElement('div');
-                        mainContent.className = 'flex flex-row items-center w-full min-w-0 pr-4';
-                        
                         const pinBtn = document.createElement('button');
-                        pinBtn.className = `pin-btn flex items-center justify-center w-8 h-8 p-0 border-none bg-transparent cursor-pointer flex-shrink-0 mr-2 ${tzObj.isPinned ? 'pinned' : ''}`;
+                        pinBtn.className = `pin-btn action-button flex items-center justify-center p-0 border-none bg-transparent cursor-pointer flex-shrink-0`;
                         pinBtn.setAttribute('aria-label', 'Pin timezone');
-                        
-                        // Always use the solid pin icon and let CSS handle the color
+                        // Use a Font Awesome icon for the thumbtack
                         pinBtn.innerHTML = `
-                            <i class="fas fa-thumbtack w-6 h-6"></i>
+                            <i class="fa-solid fa-thumbtack"></i>
                             <span class="tooltip">Pin</span>
                         `;
+
+                        // Add the 'pinned' class to the pin button if the timezone is pinned
+                        if (tzObj.isPinned) {
+                            pinBtn.classList.add('pinned');
+                        }
 
                         const textDiv = document.createElement('div');
                         textDiv.className = 'timezone-item-text flex-grow flex-shrink sm:pr-4 pr-0';
@@ -538,27 +533,17 @@
                         pTag.innerHTML += `<br><span class="time text-lg font-bold" data-timezone="${tzObj.timezone}"></span>`;
                         textDiv.appendChild(pTag);
 
-                        // Delete button
                         const removeBtn = document.createElement('button');
-                        removeBtn.className = 'delete-btn unified-button p-2 w-10 h-10 flex items-center justify-center flex-shrink-0';
+                        removeBtn.className = 'delete-btn action-button flex items-center justify-center flex-shrink-0';
                         removeBtn.setAttribute('aria-label', 'Remove timezone');
                         removeBtn.innerHTML = `
-                            <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <polyline points="3 6 5 6 21 6"></polyline>
-                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                <line x1="10" y1="11" x2="10" y2="17"></line>
-                                <line x1="14" y1="11" x2="14" y2="17"></line>
-                            </svg>
+                            <i class="fa-solid fa-trash-can"></i>
                             <span class="tooltip">Remove</span>
                         `;
 
                         timezoneItem.appendChild(pinBtn);
                         timezoneItem.appendChild(textDiv);
                         timezoneItem.appendChild(removeBtn);
-
-                        // No longer adding event listeners inside the loop
-                        // removeBtn.addEventListener('click', () => removeTimezone(tzObj.label));
-                        // pinBtn.addEventListener('click', () => togglePin(tzObj.label));
 
                         timezoneListContainer.appendChild(timezoneItem);
                     });
@@ -607,10 +592,8 @@
                     return;
                 }
                 
-                // Find the full timezone name from the saved label
                 const sourceTz = savedTimezones.find(tz => tz.label === sourceTzLabel)?.timezone || sourceTzLabel;
 
-                // Check for a valid timezone before proceeding
                 try {
                     Intl.DateTimeFormat('en-US', { timeZone: sourceTz }).format(new Date());
                 } catch (e) {
@@ -719,12 +702,8 @@
 
             // Touch-based drag and drop logic
             timezoneListContainer.addEventListener('touchstart', (e) => {
-                const target = e.target;
-                // If the touch starts on a button, do not start drag logic.
-                // This allows the browser's native click handling to proceed.
-                if (target.closest('.pin-btn') || target.closest('.delete-btn')) {
-                    draggedItem = null;
-                    touchMoved = false;
+                // IMPORTANT: If the touch starts on a button, do not activate drag logic
+                if (e.target.closest('.pin-btn, .delete-btn')) {
                     return;
                 }
                 
@@ -733,13 +712,17 @@
                     draggedItem = null;
                     return;
                 }
-                
-                // Only prevent default on the drag item itself, not the buttons
-                // e.preventDefault();
-                touchStartX = e.touches[0].clientX;
-                touchStartY = e.touches[0].clientY;
+
+                e.preventDefault(); // Prevent default browser actions for the drag
+                const touch = e.touches[0];
+                const touchStartX = touch.clientX;
+                const touchStartY = touch.clientY;
                 touchMoved = false;
+                draggedItem.style.position = 'fixed';
+                draggedItem.style.left = touchStartX - draggedItem.offsetWidth / 2 + 'px';
+                draggedItem.style.top = touchStartY - draggedItem.offsetHeight / 2 + 'px';
                 draggedItem.classList.add('dragging');
+
             }, { passive: false });
 
             timezoneListContainer.addEventListener('touchmove', (e) => {
@@ -747,9 +730,11 @@
                 e.preventDefault();
                 touchMoved = true;
                 const touch = e.touches[0];
+                draggedItem.style.left = touch.clientX - draggedItem.offsetWidth / 2 + 'px';
+                draggedItem.style.top = touch.clientY - draggedItem.offsetHeight / 2 + 'px';
+
                 const target = document.elementFromPoint(touch.clientX, touch.clientY);
                 const list = timezoneListContainer;
-
                 const newTarget = target.closest('.timezone-item');
 
                 if (newTarget && newTarget !== draggedItem) {
@@ -768,7 +753,13 @@
 
             timezoneListContainer.addEventListener('touchend', (e) => {
                 if (!draggedItem) return;
+                
+                // Reset styling and update order
                 draggedItem.classList.remove('dragging');
+                draggedItem.style.position = '';
+                draggedItem.style.left = '';
+                draggedItem.style.top = '';
+
                 if (touchMoved) {
                     updateSavedOrder();
                 }
@@ -885,7 +876,7 @@
                 }
             });
 
-            // NEW: Logic for the source timezone input and suggestions
+            // Logic for the source timezone input and suggestions
             const populateSourceSuggestions = (query = '') => {
                 sourceSuggestions.innerHTML = '';
                 
@@ -903,7 +894,6 @@
                         suggestionItem.textContent = tz.label;
                         suggestionItem.dataset.timezone = tz.timezone;
                         suggestionItem.classList.add('source-suggestions-item');
-                        // Re-enabling the click listener here
                         suggestionItem.addEventListener('click', () => {
                             sourceTimezoneInput.value = tz.label;
                             sourceSuggestions.classList.remove('show');
@@ -919,12 +909,10 @@
                 }
             };
 
-            // Event listener for input
             sourceTimezoneInput.addEventListener('input', () => {
                 populateSourceSuggestions(sourceTimezoneInput.value.trim());
             });
 
-            // Event listener for click (new)
             sourceTimezoneInput.addEventListener('click', () => {
                 populateSourceSuggestions(sourceTimezoneInput.value.trim());
             });
@@ -980,11 +968,10 @@
                 }
             });
 
-            // Event delegation for the delete button
+            // NEW: Unified event delegation for delete and pin buttons
             timezoneListContainer.addEventListener('click', (e) => {
-                const target = e.target;
-                const deleteButton = target.closest('.delete-btn');
-                const pinButton = target.closest('.pin-btn');
+                const deleteButton = e.target.closest('.delete-btn');
+                const pinButton = e.target.closest('.pin-btn');
 
                 if (deleteButton) {
                     const timezoneItem = deleteButton.closest('.timezone-item');
@@ -1000,10 +987,9 @@
                     }
                 }
             });
-
-
+            
             init();
-
+            
             intervalId = setInterval(() => updateTimes(), 1000);
         });
     </script>
