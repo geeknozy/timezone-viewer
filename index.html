@@ -190,7 +190,7 @@
             align-items: center;
             justify-content: center;
             padding: 0;
-            margin: 0 4px; /* Add some spacing between buttons */
+            margin: 0 2px; /* Add some spacing between buttons */
             cursor: pointer;
             border: 2px outset #000000;
             background-color: #ffffff;
@@ -249,29 +249,6 @@
         .drag-handle .fa-grip-vertical {
             color: #888888;
             font-size: 1.25rem;
-        }
-        
-        /* Mobile-specific styles for the entire item */
-        @media (max-width: 639px) { /* sm breakpoint */
-            .timezone-item {
-                flex-direction: row; /* Keep buttons and text in a row */
-                align-items: center;
-                text-align: left;
-            }
-            .timezone-item-text {
-                flex-grow: 1;
-                flex-shrink: 1;
-                padding-right: 0;
-                margin-right: auto; /* Push the buttons to the right */
-            }
-            .pin-btn, .delete-btn {
-                margin: 0 0.5rem; /* Better spacing for buttons on mobile */
-                width: 36px;
-                height: 36px;
-            }
-            .pin-btn .fa-thumbtack, .delete-btn .fa-trash-can {
-                font-size: 1rem;
-            }
         }
         
         /* New styles for success and error messages */
@@ -616,12 +593,12 @@
                 } else {
                     savedTimezones.forEach((tzObj, index) => {
                         const timezoneItem = document.createElement('div');
-                        timezoneItem.className = `timezone-item flex sm:flex-row flex-col justify-between sm:items-center items-center p-4 bg-gray-100 transition-none`;
+                        timezoneItem.className = `timezone-item flex flex-row justify-between items-center p-4 bg-gray-100 transition-none`;
                         timezoneItem.dataset.label = tzObj.label;
                         timezoneItem.dataset.isPinned = tzObj.isPinned;
                         
                         const pinBtn = document.createElement('button');
-                        pinBtn.className = `pin-btn action-button flex items-center justify-center p-0 border-none bg-transparent cursor-pointer flex-shrink-0`;
+                        pinBtn.className = `pin-btn action-button flex items-center justify-center p-0 border-none bg-transparent cursor-pointer flex-shrink-0 relative`;
                         pinBtn.setAttribute('aria-label', 'Pin timezone');
                         // Use a Font Awesome icon for the thumbtack
                         pinBtn.innerHTML = `
@@ -635,7 +612,7 @@
                         }
 
                         const textDiv = document.createElement('div');
-                        textDiv.className = 'timezone-item-text flex-grow flex-shrink sm:pr-4 pr-0 flex flex-col justify-center items-center text-center';
+                        textDiv.className = 'timezone-item-text flex-grow flex-shrink px-4 flex flex-col justify-center items-start text-left';
                         const strongTag = document.createElement('strong');
                         strongTag.textContent = tzObj.label;
                         const pTag = document.createElement('p');
@@ -644,7 +621,7 @@
                         textDiv.appendChild(pTag);
 
                         const removeBtn = document.createElement('button');
-                        removeBtn.className = 'delete-btn action-button flex items-center justify-center flex-shrink-0';
+                        removeBtn.className = 'delete-btn action-button flex items-center justify-center flex-shrink-0 relative';
                         removeBtn.setAttribute('aria-label', 'Remove timezone');
                         removeBtn.innerHTML = `
                             <i class="fa-solid fa-trash-can"></i>
@@ -653,17 +630,22 @@
                         
                         // New drag handle icon
                         const dragHandle = document.createElement('div');
-                        dragHandle.className = 'drag-handle';
+                        dragHandle.className = 'drag-handle relative';
                         dragHandle.setAttribute('draggable', 'true');
                         dragHandle.innerHTML = `
                             <i class="fa-solid fa-grip-vertical"></i>
                             <span class="tooltip">Drag to reorder</span>
                         `;
+                        
+                        const rightActionsContainer = document.createElement('div');
+                        rightActionsContainer.className = 'flex items-center flex-shrink-0';
+
+                        rightActionsContainer.appendChild(removeBtn);
+                        rightActionsContainer.appendChild(dragHandle);
 
                         timezoneItem.appendChild(pinBtn);
                         timezoneItem.appendChild(textDiv);
-                        timezoneItem.appendChild(removeBtn);
-                        timezoneItem.appendChild(dragHandle);
+                        timezoneItem.appendChild(rightActionsContainer);
 
                         timezoneListContainer.appendChild(timezoneItem);
                     });
@@ -879,11 +861,6 @@
                 
                 const item = dragHandle.closest('.timezone-item');
                 if (!item) {
-                    return;
-                }
-                
-                // Disable touch drag for pinned items
-                if (item.dataset.isPinned === 'true') {
                     return;
                 }
                 
@@ -1186,3 +1163,4 @@
     </script>
 </body>
 </html>
+
