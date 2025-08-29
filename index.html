@@ -135,6 +135,12 @@
             background-color: #cccccc;
         }
         
+        /* Add a visual cue for a valid drop target */
+        .timezone-item.drag-over-valid {
+            border: 2px inset #000000;
+            box-shadow: 0 0 8px #000000;
+        }
+
         .timezone-item:hover {
             border: 2px inset #cccccc;
             background-color: #dddddd;
@@ -240,6 +246,68 @@
                 font-size: 1rem;
             }
         }
+        
+        /* New styles for success and error messages */
+        .message-box.success {
+            border: 2px outset #4CAF50; /* Green for success */
+            color: #2e7d32;
+            background-color: #e8f5e9;
+        }
+        .message-box.error {
+            border: 2px outset #F44336; /* Red for failure */
+            color: #c62828;
+            background-color: #ffebee;
+        }
+        
+        /* Pop-up Modal Styling */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: none; /* Initially hidden */
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+        }
+
+        .modal-content {
+            background-color: #fff;
+            padding: 2rem;
+            border: 2px outset #F44336; /* Red border for errors */
+            border-radius: 0;
+            text-align: center;
+            max-width: 400px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            position: relative;
+        }
+        
+        .modal-content h3 {
+            color: #c62828;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .modal-content p {
+            font-size: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .modal-content button {
+            background-color: #F44336;
+            color: white;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 0;
+            cursor: pointer;
+            border: 2px outset #a0a0a0;
+        }
+
+        .modal-content button:hover {
+            background-color: #e53935;
+        }
     </style>
 </head>
 <body class="bg-gray-200 text-black flex justify-center items-start min-h-screen p-8">
@@ -298,6 +366,15 @@
             </div>
         </div>
     </div>
+    
+    <!-- Pop-up Modal for Error Messages -->
+    <div id="errorModal" class="modal">
+        <div class="modal-content unified-input-like">
+            <h3 class="modal-title">Error</h3>
+            <p class="modal-message"></p>
+            <button id="closeModalBtn" class="unified-button">OK</button>
+        </div>
+    </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -312,6 +389,9 @@
             const foreignClearBtn = document.getElementById('foreignClearBtn');
             const toggleConversionBtn = document.getElementById('toggleConversionBtn');
             const conversionContainer = document.getElementById('conversionContainer');
+            const errorModal = document.getElementById('errorModal');
+            const modalMessage = errorModal.querySelector('.modal-message');
+            const closeModalBtn = document.getElementById('closeModalBtn');
 
             // Time conversion input and suggestions
             const sourceTimezoneInput = document.getElementById('sourceTimezoneInput');
@@ -360,16 +440,20 @@
             const showMessage = (message, type = 'info') => {
                 messageBox.textContent = message;
                 messageBox.classList.remove('hidden');
+                messageBox.classList.remove('success', 'error');
+                
                 if (type === 'error') {
-                    messageBox.classList.add('text-red-600', 'border-red-600');
-                    messageBox.classList.remove('text-green-600', 'border-green-600');
+                    messageBox.classList.add('error');
+                    // Show modal for errors
+                    modalMessage.textContent = message;
+                    errorModal.style.display = 'flex';
                 } else {
-                    messageBox.classList.add('text-green-600', 'border-green-600');
-                    messageBox.classList.remove('text-red-600', 'border-red-600');
+                    messageBox.classList.add('success');
+                    // Use toast for success messages
+                    setTimeout(() => {
+                        messageBox.classList.add('hidden');
+                    }, 3000);
                 }
-                setTimeout(() => {
-                    messageBox.classList.add('hidden');
-                }, 3000);
             };
             
             // Function to check if local storage is available
@@ -664,10 +748,13 @@
                 }
             };
             
-            // Drag and Drop Logic
+            // --- Drag and Drop Logic (Mouse) ---
             timezoneListContainer.addEventListener('dragstart', (e) => {
+                // Find the closest draggable item
                 draggedItem = e.target.closest('.timezone-item');
                 if (!draggedItem) return;
+                
+                // Set data and add dragging class
                 e.dataTransfer.effectAllowed = 'move';
                 e.dataTransfer.setData('text/plain', draggedItem.dataset.label);
                 setTimeout(() => {
@@ -678,39 +765,59 @@
             timezoneListContainer.addEventListener('dragover', (e) => {
                 e.preventDefault();
                 const target = e.target.closest('.timezone-item');
-                const list = timezoneListContainer;
+                
+                // Clear the drag-over class from all elements first
+                document.querySelectorAll('.drag-over-valid').forEach(el => el.classList.remove('drag-over-valid'));
 
                 if (target && target !== draggedItem) {
-                    const rect = target.getBoundingClientRect();
-                    const next = (e.clientY - rect.top) / (rect.bottom - rect.top) > .5;
-                    
-                    if (draggedItem.dataset.isPinned !== target.dataset.isPinned) return;
-
-                    if (next) {
-                        list.insertBefore(draggedItem, target.nextElementSibling);
-                    } else {
-                        list.insertBefore(draggedItem, target);
+                    // Only allow reordering within the same type (pinned/unpinned)
+                    if (draggedItem.dataset.isPinned !== target.dataset.isPinned) {
+                        return;
                     }
+                    
+                    // Add visual cue to the valid target
+                    target.classList.add('drag-over-valid');
+                    
+                    const rect = target.getBoundingClientRect();
+                    const isNext = (e.clientY - rect.top) / (rect.bottom - rect.top) > .5;
+                    const referenceNode = isNext ? target.nextElementSibling : target;
+                    
+                    // Insert the dragged element before or after the target
+                    timezoneListContainer.insertBefore(draggedItem, referenceNode);
+                }
+            });
+
+            timezoneListContainer.addEventListener('dragleave', (e) => {
+                // Remove the drag-over class when leaving a target
+                if (e.target.closest('.timezone-item')) {
+                    e.target.classList.remove('drag-over-valid');
                 }
             });
 
             timezoneListContainer.addEventListener('dragend', (e) => {
+                // Clean up classes and update the data model
                 if (draggedItem) {
                     draggedItem.classList.remove('dragging');
                     draggedItem = null;
+                    document.querySelectorAll('.drag-over-valid').forEach(el => el.classList.remove('drag-over-valid'));
                     updateSavedOrder();
                 }
             });
 
-            // Touch-based drag and drop logic with a delay
+            // --- Drag and Drop Logic (Touch) ---
             timezoneListContainer.addEventListener('touchstart', (e) => {
-                // IMPORTANT: If the touch starts on a button, do not activate drag logic
+                // If the touch starts on a button, do not activate drag logic
                 if (e.target.closest('.pin-btn, .delete-btn')) {
                     return;
                 }
                 
                 const item = e.target.closest('.timezone-item');
-                if (!item || item.dataset.isPinned === 'true') {
+                if (!item) {
+                    return;
+                }
+                
+                // Disable touch drag for pinned items to simplify the user experience
+                if (item.dataset.isPinned === 'true') {
                     return;
                 }
 
@@ -729,12 +836,15 @@
 
             timezoneListContainer.addEventListener('touchmove', (e) => {
                 // Clear the timer if the user moves their finger before the delay is up
-                clearTimeout(touchTimer);
-                touchTimer = null;
+                if (touchTimer) {
+                    clearTimeout(touchTimer);
+                    touchTimer = null;
+                }
 
                 if (!draggedItem) return;
                 e.preventDefault();
                 touchMoved = true;
+                
                 const touch = e.touches[0];
                 draggedItem.style.left = touch.clientX - draggedItem.offsetWidth / 2 + 'px';
                 draggedItem.style.top = touch.clientY - draggedItem.offsetHeight / 2 + 'px';
@@ -742,23 +852,26 @@
                 const target = document.elementFromPoint(touch.clientX, touch.clientY);
                 const list = timezoneListContainer;
                 const newTarget = target.closest('.timezone-item');
+                
+                // Clear previous drag-over visual cues
+                document.querySelectorAll('.drag-over-valid').forEach(el => el.classList.remove('drag-over-valid'));
 
                 if (newTarget && newTarget !== draggedItem) {
-                    const rect = newTarget.getBoundingClientRect();
-                    const next = (touch.clientY - rect.top) / (rect.bottom - rect.top) > .5;
-                    
-                    if (draggedItem.dataset.isPinned !== newTarget.dataset.isPinned) return;
-
-                    if (next) {
-                        list.insertBefore(draggedItem, newTarget.nextElementSibling);
-                    } else {
-                        list.insertBefore(draggedItem, newTarget);
+                    if (draggedItem.dataset.isPinned !== newTarget.dataset.isPinned) {
+                        return;
                     }
+                    
+                    newTarget.classList.add('drag-over-valid');
+                    
+                    const rect = newTarget.getBoundingClientRect();
+                    const isNext = (touch.clientY - rect.top) / (rect.bottom - rect.top) > .5;
+                    
+                    const referenceNode = isNext ? newTarget.nextElementSibling : newTarget;
+                    list.insertBefore(draggedItem, referenceNode);
                 }
             }, { passive: false });
 
             timezoneListContainer.addEventListener('touchend', (e) => {
-                // Clear the timer whether the drag started or not
                 clearTimeout(touchTimer);
                 touchTimer = null;
                 
@@ -773,6 +886,8 @@
                 if (touchMoved) {
                     updateSavedOrder();
                 }
+                
+                document.querySelectorAll('.drag-over-valid').forEach(el => el.classList.remove('drag-over-valid'));
                 draggedItem = null;
                 touchMoved = false;
             });
@@ -800,6 +915,17 @@
             });
 
             // Updated keyboard navigation for suggestions to handle single-item selection
+            const updateActiveSuggestion = (suggestions, index) => {
+                suggestions.forEach((s, i) => {
+                    if (i === index) {
+                        s.classList.add('bg-gray-200', 'border', 'border-dashed', 'border-black');
+                        s.scrollIntoView({ block: 'nearest' });
+                    } else {
+                        s.classList.remove('bg-gray-200', 'border', 'border-dashed', 'border-black');
+                    }
+                });
+            };
+
             timezoneInput.addEventListener('keydown', (e) => {
                 const suggestions = suggestionsContainer.querySelectorAll('div');
                 
@@ -831,18 +957,7 @@
                     activeSuggestionIndex = -1;
                 }
             });
-
-            const updateActiveSuggestion = (suggestions, index) => {
-                suggestions.forEach((s, i) => {
-                    if (i === index) {
-                        s.classList.add('bg-gray-200', 'border', 'border-dashed', 'border-black');
-                        s.scrollIntoView({ block: 'nearest' });
-                    } else {
-                        s.classList.remove('bg-gray-200', 'border', 'border-dashed', 'border-black');
-                    }
-                });
-            };
-
+            
             timezoneInput.addEventListener('input', () => {
                 const query = timezoneInput.value.trim().toLowerCase();
                 suggestionsContainer.innerHTML = '';
@@ -864,10 +979,9 @@
                             suggestionsContainer.appendChild(suggestionItem);
                         });
                         
-                        if (filteredTimezones.length === 1) {
-                            activeSuggestionIndex = 0;
-                            updateActiveSuggestion(suggestionsContainer.querySelectorAll('div'), activeSuggestionIndex);
-                        }
+                        // FIX: Highlight the first item when suggestions are populated
+                        activeSuggestionIndex = 0;
+                        updateActiveSuggestion(suggestionsContainer.querySelectorAll('div'), activeSuggestionIndex);
                         
                     } else {
                         suggestionsContainer.classList.add('hidden');
@@ -998,6 +1112,11 @@
                         togglePin(label);
                     }
                 }
+            });
+
+            // Event listener for the modal close button
+            closeModalBtn.addEventListener('click', () => {
+                errorModal.style.display = 'none';
             });
             
             init();
