@@ -126,7 +126,8 @@
             border: 2px outset #cccccc;
             border-radius: 0;
             transition: none;
-            cursor: grab;
+            /* Remove the grab cursor from the entire tile */
+            cursor: default;
         }
 
         .timezone-item.dragging {
@@ -147,7 +148,7 @@
         }
         
         /* Tooltip styles */
-        .pin-btn .tooltip, .delete-btn .tooltip {
+        .pin-btn .tooltip, .delete-btn .tooltip, .drag-handle .tooltip {
             visibility: hidden;
             background-color: #000;
             color: #fff;
@@ -164,7 +165,7 @@
             transition: opacity 0.3s;
         }
         
-        .pin-btn:hover .tooltip, .delete-btn:hover .tooltip {
+        .pin-btn:hover .tooltip, .delete-btn:hover .tooltip, .drag-handle:hover .tooltip {
             visibility: visible;
             opacity: 1;
         }
@@ -222,6 +223,32 @@
         }
         .delete-btn:hover .fa-trash-can {
             color: #000000;
+        }
+        
+        /* New drag handle icon styling */
+        .drag-handle {
+            cursor: grab;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            flex-shrink: 0;
+            border: 2px outset #000000;
+            background-color: #ffffff;
+            border-radius: 0;
+            transition: all 0.1s ease-in-out;
+        }
+        
+        .drag-handle:hover, .drag-handle:active {
+            border: 2px inset #000000;
+            background-color: #e0e0e0;
+        }
+
+        /* Use a different icon that's available in the free version */
+        .drag-handle .fa-grip-vertical {
+            color: #888888;
+            font-size: 1.25rem;
         }
         
         /* Mobile-specific styles for the entire item */
@@ -335,7 +362,7 @@
             <label for="hourFormatToggle" class="text-base cursor-pointer">24-Hour Format</label>
         </div>
         
-        <p class="drag-instruction text-center italic text-gray-500 text-sm mb-4">Drag and drop to reorder, or click the thumbtack to pin.</p>
+        <p class="drag-instruction text-center italic text-gray-500 text-sm mb-4">Click and drag the handle on the right to reorder.</p>
 
         <!-- List to display added timezones -->
         <div class="timezone-list flex flex-col gap-4" id="timezoneListContainer">
@@ -592,7 +619,6 @@
                         timezoneItem.className = `timezone-item flex sm:flex-row flex-col justify-between sm:items-center items-center p-4 bg-gray-100 transition-none`;
                         timezoneItem.dataset.label = tzObj.label;
                         timezoneItem.dataset.isPinned = tzObj.isPinned;
-                        timezoneItem.draggable = true;
                         
                         const pinBtn = document.createElement('button');
                         pinBtn.className = `pin-btn action-button flex items-center justify-center p-0 border-none bg-transparent cursor-pointer flex-shrink-0`;
@@ -609,7 +635,7 @@
                         }
 
                         const textDiv = document.createElement('div');
-                        textDiv.className = 'timezone-item-text flex-grow flex-shrink sm:pr-4 pr-0';
+                        textDiv.className = 'timezone-item-text flex-grow flex-shrink sm:pr-4 pr-0 flex flex-col justify-center items-center text-center';
                         const strongTag = document.createElement('strong');
                         strongTag.textContent = tzObj.label;
                         const pTag = document.createElement('p');
@@ -624,10 +650,20 @@
                             <i class="fa-solid fa-trash-can"></i>
                             <span class="tooltip">Remove</span>
                         `;
+                        
+                        // New drag handle icon
+                        const dragHandle = document.createElement('div');
+                        dragHandle.className = 'drag-handle';
+                        dragHandle.setAttribute('draggable', 'true');
+                        dragHandle.innerHTML = `
+                            <i class="fa-solid fa-grip-vertical"></i>
+                            <span class="tooltip">Drag to reorder</span>
+                        `;
 
                         timezoneItem.appendChild(pinBtn);
                         timezoneItem.appendChild(textDiv);
                         timezoneItem.appendChild(removeBtn);
+                        timezoneItem.appendChild(dragHandle);
 
                         timezoneListContainer.appendChild(timezoneItem);
                     });
@@ -748,11 +784,21 @@
             
             // --- Drag and Drop Logic (Mouse) ---
             timezoneListContainer.addEventListener('dragstart', (e) => {
-                // Find the closest draggable item
-                draggedItem = e.target.closest('.timezone-item');
+                // Only start drag if the event target is the drag handle
+                const dragHandle = e.target.closest('.drag-handle');
+                if (!dragHandle) {
+                    e.preventDefault();
+                    return;
+                }
+                
+                // Fix for ghosting issue in Chromium browsers.
+                const img = new Image();
+                img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+                e.dataTransfer.setDragImage(img, 0, 0);
+            
+                draggedItem = dragHandle.closest('.timezone-item');
                 if (!draggedItem) return;
                 
-                // Set data and add dragging class
                 e.dataTransfer.effectAllowed = 'move';
                 e.dataTransfer.setData('text/plain', draggedItem.dataset.label);
                 setTimeout(() => {
@@ -825,26 +871,28 @@
 
             // --- Drag and Drop Logic (Touch) ---
             timezoneListContainer.addEventListener('touchstart', (e) => {
-                // If the touch starts on a button, do not activate drag logic
-                if (e.target.closest('.pin-btn, .delete-btn')) {
+                // Only start drag if the touch starts on the drag handle
+                const dragHandle = e.target.closest('.drag-handle');
+                if (!dragHandle) {
                     return;
                 }
                 
-                const item = e.target.closest('.timezone-item');
+                const item = dragHandle.closest('.timezone-item');
                 if (!item) {
                     return;
                 }
                 
-                // Disable touch drag for pinned items to simplify the user experience
+                // Disable touch drag for pinned items
                 if (item.dataset.isPinned === 'true') {
                     return;
                 }
-
-                // Start drag immediately
+                
+                e.preventDefault();
                 draggedItem = item;
                 touchMoved = false;
                 draggedItem.style.position = 'fixed';
                 draggedItem.style.zIndex = 1000;
+                draggedItem.style.pointerEvents = 'none';
                 const touch = e.touches[0];
                 draggedItem.style.left = touch.clientX - draggedItem.offsetWidth / 2 + 'px';
                 draggedItem.style.top = touch.clientY - draggedItem.offsetHeight / 2 + 'px';
@@ -909,6 +957,7 @@
                 draggedItem.style.left = '';
                 draggedItem.style.top = '';
                 draggedItem.style.zIndex = '';
+                draggedItem.style.pointerEvents = '';
                 
                 document.querySelectorAll('.drag-over-valid').forEach(el => el.classList.remove('drag-over-valid'));
                 draggedItem = null;
