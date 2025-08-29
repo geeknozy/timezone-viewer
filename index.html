@@ -404,8 +404,6 @@
             let activeSuggestionIndex = -1;
             let sourceActiveSuggestionIndex = -1;
             let touchMoved = false;
-            let touchTimer = null; // New timer for touch delay
-            const TOUCH_DRAG_DELAY = 200; // 200ms delay for a touch to become a drag
 
             // Map of common abbreviations to a representative full timezone name
             const abbreviationMap = {
@@ -777,14 +775,36 @@
                     
                     // Add visual cue to the valid target
                     target.classList.add('drag-over-valid');
-                    
-                    const rect = target.getBoundingClientRect();
-                    const isNext = (e.clientY - rect.top) / (rect.bottom - rect.top) > .5;
-                    const referenceNode = isNext ? target.nextElementSibling : target;
-                    
-                    // Insert the dragged element before or after the target
-                    timezoneListContainer.insertBefore(draggedItem, referenceNode);
                 }
+            });
+            
+            timezoneListContainer.addEventListener('drop', (e) => {
+                e.preventDefault();
+                const target = e.target.closest('.timezone-item');
+                
+                if (draggedItem && target && target !== draggedItem) {
+                    const draggedLabel = draggedItem.dataset.label;
+                    const targetLabel = target.dataset.label;
+
+                    const draggedIndex = savedTimezones.findIndex(tz => tz.label === draggedLabel);
+                    const targetIndex = savedTimezones.findIndex(tz => tz.label === targetLabel);
+                    
+                    // Remove the dragged item from its original position
+                    const [itemToMove] = savedTimezones.splice(draggedIndex, 1);
+                    
+                    // Re-insert it at the new position
+                    savedTimezones.splice(targetIndex, 0, itemToMove);
+                    
+                    // Update storage and re-render the list
+                    saveTimezones();
+                    renderTimezones();
+                }
+                // Clean up classes
+                if (draggedItem) {
+                    draggedItem.classList.remove('dragging');
+                }
+                document.querySelectorAll('.drag-over-valid').forEach(el => el.classList.remove('drag-over-valid'));
+                draggedItem = null;
             });
 
             timezoneListContainer.addEventListener('dragleave', (e) => {
@@ -795,13 +815,12 @@
             });
 
             timezoneListContainer.addEventListener('dragend', (e) => {
-                // Clean up classes and update the data model
+                // Clean up classes
                 if (draggedItem) {
                     draggedItem.classList.remove('dragging');
                     draggedItem = null;
-                    document.querySelectorAll('.drag-over-valid').forEach(el => el.classList.remove('drag-over-valid'));
-                    updateSavedOrder();
                 }
+                document.querySelectorAll('.drag-over-valid').forEach(el => el.classList.remove('drag-over-valid'));
             });
 
             // --- Drag and Drop Logic (Touch) ---
@@ -821,26 +840,18 @@
                     return;
                 }
 
-                // Start a timer to initiate the drag after a delay
-                touchTimer = setTimeout(() => {
-                    draggedItem = item;
-                    touchMoved = false;
-                    draggedItem.style.position = 'fixed';
-                    const touch = e.touches[0];
-                    draggedItem.style.left = touch.clientX - draggedItem.offsetWidth / 2 + 'px';
-                    draggedItem.style.top = touch.clientY - draggedItem.offsetHeight / 2 + 'px';
-                    draggedItem.classList.add('dragging');
-                }, TOUCH_DRAG_DELAY);
-
-            }, { passive: false });
+                // Start drag immediately
+                draggedItem = item;
+                touchMoved = false;
+                draggedItem.style.position = 'fixed';
+                draggedItem.style.zIndex = 1000;
+                const touch = e.touches[0];
+                draggedItem.style.left = touch.clientX - draggedItem.offsetWidth / 2 + 'px';
+                draggedItem.style.top = touch.clientY - draggedItem.offsetHeight / 2 + 'px';
+                draggedItem.classList.add('dragging');
+            });
 
             timezoneListContainer.addEventListener('touchmove', (e) => {
-                // Clear the timer if the user moves their finger before the delay is up
-                if (touchTimer) {
-                    clearTimeout(touchTimer);
-                    touchTimer = null;
-                }
-
                 if (!draggedItem) return;
                 e.preventDefault();
                 touchMoved = true;
@@ -862,48 +873,48 @@
                     }
                     
                     newTarget.classList.add('drag-over-valid');
-                    
-                    const rect = newTarget.getBoundingClientRect();
-                    const isNext = (touch.clientY - rect.top) / (rect.bottom - rect.top) > .5;
-                    
-                    const referenceNode = isNext ? newTarget.nextElementSibling : newTarget;
-                    list.insertBefore(draggedItem, referenceNode);
                 }
             }, { passive: false });
 
             timezoneListContainer.addEventListener('touchend', (e) => {
-                clearTimeout(touchTimer);
-                touchTimer = null;
-                
                 if (!draggedItem) return;
                 
-                // Reset styling and update order
+                // Find the new target
+                const touch = e.changedTouches[0];
+                const newTarget = document.elementFromPoint(touch.clientX, touch.clientY)?.closest('.timezone-item');
+                
+                if (touchMoved && newTarget && newTarget !== draggedItem) {
+                    const draggedLabel = draggedItem.dataset.label;
+                    const targetLabel = newTarget.dataset.label;
+                    
+                    const draggedIndex = savedTimezones.findIndex(tz => tz.label === draggedLabel);
+                    const targetIndex = savedTimezones.findIndex(tz => tz.label === targetLabel);
+
+                    const [itemToMove] = savedTimezones.splice(draggedIndex, 1);
+                    savedTimezones.splice(targetIndex, 0, itemToMove);
+                    
+                    saveTimezones();
+                    renderTimezones();
+                } else {
+                    // Just a tap, not a move, so check for button clicks
+                    const targetButton = e.target.closest('.pin-btn, .delete-btn');
+                    if (targetButton) {
+                        targetButton.click();
+                    }
+                }
+
+                // Reset styling
                 draggedItem.classList.remove('dragging');
                 draggedItem.style.position = '';
                 draggedItem.style.left = '';
                 draggedItem.style.top = '';
-
-                if (touchMoved) {
-                    updateSavedOrder();
-                }
+                draggedItem.style.zIndex = '';
                 
                 document.querySelectorAll('.drag-over-valid').forEach(el => el.classList.remove('drag-over-valid'));
                 draggedItem = null;
                 touchMoved = false;
             });
             
-            // Function to update the order in the savedTimezones array based on the DOM
-            const updateSavedOrder = () => {
-                const itemsInDom = Array.from(timezoneListContainer.children).filter(el => el.classList.contains('timezone-item'));
-                const newOrder = itemsInDom.map(item => savedTimezones.find(tz => tz.label === item.dataset.label));
-                
-                // Filter out any items that might have been removed during the drag
-                const validNewOrder = newOrder.filter(item => item !== undefined);
-                
-                savedTimezones = validNewOrder;
-                saveTimezones();
-            };
-
             // Event listeners for the 'add' button and input field
             addTimezoneBtn.addEventListener('click', () => {
                 const trimmedInput = timezoneInput.value.trim();
