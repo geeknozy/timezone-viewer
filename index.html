@@ -312,6 +312,26 @@
         .modal-content button:hover {
             background-color: #e53935;
         }
+
+        /* New styles for a single flex row layout */
+        .timezone-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .timezone-item .timezone-item-text {
+            flex-grow: 1;
+            flex-shrink: 1;
+            padding: 0 1rem;
+            text-align: left;
+        }
+        
+        .timezone-item .action-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
     </style>
 </head>
 <body class="bg-gray-200 text-black flex justify-center items-start min-h-screen p-8">
@@ -584,35 +604,34 @@
             const renderTimezones = () => {
                 timezoneListContainer.innerHTML = '';
                 sortTimezones();
-                
                 if (savedTimezones.length === 0) {
                     const noTimezonesMsg = document.createElement('p');
                     noTimezonesMsg.classList.add('text-center', 'text-gray-500');
                     noTimezonesMsg.textContent = 'No timezones added yet.';
                     timezoneListContainer.appendChild(noTimezonesMsg);
                 } else {
-                    savedTimezones.forEach((tzObj, index) => {
+                    savedTimezones.forEach((tzObj) => {
                         const timezoneItem = document.createElement('div');
-                        timezoneItem.className = `timezone-item flex flex-row justify-between items-center p-4 bg-gray-100 transition-none`;
+                        // Use flex-row for all screen sizes with vertical centering
+                        timezoneItem.className = `timezone-item flex items-center justify-between p-4 bg-gray-100 transition-none`;
                         timezoneItem.dataset.label = tzObj.label;
                         timezoneItem.dataset.isPinned = tzObj.isPinned;
-                        
+
+                        // Pin Button
                         const pinBtn = document.createElement('button');
                         pinBtn.className = `pin-btn action-button flex items-center justify-center p-0 border-none bg-transparent cursor-pointer flex-shrink-0 relative`;
                         pinBtn.setAttribute('aria-label', 'Pin timezone');
-                        // Use a Font Awesome icon for the thumbtack
                         pinBtn.innerHTML = `
                             <i class="fa-solid fa-thumbtack"></i>
                             <span class="tooltip">Pin</span>
                         `;
-
-                        // Add the 'pinned' class to the pin button if the timezone is pinned
                         if (tzObj.isPinned) {
                             pinBtn.classList.add('pinned');
                         }
-
+                        
+                        // Text Content (label and time)
                         const textDiv = document.createElement('div');
-                        textDiv.className = 'timezone-item-text flex-grow flex-shrink px-4 flex flex-col justify-center items-start text-left';
+                        textDiv.className = 'timezone-item-text flex-grow flex-shrink';
                         const strongTag = document.createElement('strong');
                         strongTag.textContent = tzObj.label;
                         const pTag = document.createElement('p');
@@ -620,15 +639,18 @@
                         pTag.innerHTML += `<br><span class="time text-lg font-bold" data-timezone="${tzObj.timezone}"></span>`;
                         textDiv.appendChild(pTag);
 
+                        // Action Group (delete and drag)
+                        const actionGroup = document.createElement('div');
+                        actionGroup.className = 'action-group flex items-center gap-2 flex-shrink-0';
+                        
                         const removeBtn = document.createElement('button');
-                        removeBtn.className = 'delete-btn action-button flex items-center justify-center flex-shrink-0 relative';
+                        removeBtn.className = 'delete-btn action-button flex items-center justify-center relative';
                         removeBtn.setAttribute('aria-label', 'Remove timezone');
                         removeBtn.innerHTML = `
                             <i class="fa-solid fa-trash-can"></i>
                             <span class="tooltip">Remove</span>
                         `;
-                        
-                        // New drag handle icon
+
                         const dragHandle = document.createElement('div');
                         dragHandle.className = 'drag-handle relative';
                         dragHandle.setAttribute('draggable', 'true');
@@ -637,15 +659,12 @@
                             <span class="tooltip">Drag to reorder</span>
                         `;
                         
-                        const rightActionsContainer = document.createElement('div');
-                        rightActionsContainer.className = 'flex items-center flex-shrink-0';
-
-                        rightActionsContainer.appendChild(removeBtn);
-                        rightActionsContainer.appendChild(dragHandle);
+                        actionGroup.appendChild(removeBtn);
+                        actionGroup.appendChild(dragHandle);
 
                         timezoneItem.appendChild(pinBtn);
                         timezoneItem.appendChild(textDiv);
-                        timezoneItem.appendChild(rightActionsContainer);
+                        timezoneItem.appendChild(actionGroup);
 
                         timezoneListContainer.appendChild(timezoneItem);
                     });
@@ -667,12 +686,17 @@
             const updateTimes = (inputDate = null) => {
                 const timeElements = document.querySelectorAll('.timezone-item .time');
                 const now = inputDate || new Date();
+
                 timeElements.forEach(el => {
                     const tz = el.getAttribute('data-timezone');
                     try {
                         const options = {
-                            hour: '2-digit', minute: '2-digit', second: '2-digit',
-                            timeZoneName: 'short', timeZone: tz, hour12: !is24HourFormat
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit',
+                            timeZoneName: 'short',
+                            timeZone: tz,
+                            hour12: !is24HourFormat
                         };
                         const timeString = new Intl.DateTimeFormat('en-US', options).format(now);
                         el.textContent = timeString;
@@ -683,7 +707,7 @@
                     }
                 });
             };
-            
+
             // Function to parse a foreign time and convert it to all timezones
             const convertForeignTime = () => {
                 const foreignTimeStr = foreignTimeInput.value.trim();
@@ -699,429 +723,345 @@
                 try {
                     Intl.DateTimeFormat('en-US', { timeZone: sourceTz }).format(new Date());
                 } catch (e) {
-                    showMessage('Invalid source timezone selected.', 'error');
-                    return;
-                }
-
-                if (intervalId) {
-                    clearInterval(intervalId);
-                }
-                
-                const ampmMatch = foreignTimeStr.match(/^(\d{1,2}):(\d{2})\s*([AP]M)/i);
-                const militaryMatch = foreignTimeStr.match(/^(\d{1,2}):(\d{2})$/);
-
-                let hours, minutes;
-                if (ampmMatch) {
-                    hours = parseInt(ampmMatch[1], 10);
-                    minutes = parseInt(ampmMatch[2], 10);
-                    const ampm = ampmMatch[3].toUpperCase();
-                    if (ampm === 'PM' && hours < 12) hours += 12;
-                    if (ampm === 'AM' && hours === 12) hours = 0;
-                } else if (militaryMatch) {
-                    hours = parseInt(militaryMatch[1], 10);
-                    minutes = parseInt(militaryMatch[2], 10);
-                } else {
-                    showMessage('Invalid time format. Please use HH:MM or HH:MM AM/PM.', 'error');
-                    updateTimes();
+                    showMessage(`Invalid source timezone: "${sourceTzLabel}".`, 'error');
                     return;
                 }
                 
-                if (hours > 23 || minutes > 59) {
-                    showMessage('Invalid time format. Please use HH:MM or HH:MM AM/PM.', 'error');
-                    updateTimes();
+                const today = new Date();
+                const [timePart, ampmPart] = foreignTimeStr.split(' ');
+                let [hours, minutes] = timePart.split(':');
+                hours = parseInt(hours, 10);
+                minutes = parseInt(minutes, 10);
+
+                if (isNaN(hours) || isNaN(minutes) || hours < 0 || minutes < 0 || minutes > 59) {
+                    showMessage('Invalid time format. Please use "HH:MM" or "HH:MM AM/PM".', 'error');
                     return;
                 }
 
-                try {
-                    const localTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-                    
-                    const localNow = new Date();
-                    const nowInForeignUTC = new Date(localNow.toLocaleString('en-US', { timeZone: sourceTz }));
-                    const nowInLocalUTC = new Date(localNow.toLocaleString('en-US', { timeZone: localTimezone }));
-                    const offsetMs = nowInForeignUTC.getTime() - nowInLocalUTC.getTime();
-
-                    const convertedDate = new Date();
-                    convertedDate.setHours(hours, minutes, 0, 0);
-                    convertedDate.setTime(convertedDate.getTime() - offsetMs);
-                    
-                    updateTimes(convertedDate);
-
-                } catch (e) {
-                    showMessage('Invalid timezone selected.', 'error');
-                    updateTimes();
+                if (ampmPart) { // 12-hour format
+                    const ampm = ampmPart.toUpperCase();
+                    if (ampm === 'PM' && hours < 12) {
+                        hours += 12;
+                    } else if (ampm === 'AM' && hours === 12) {
+                        hours = 0;
+                    }
                 }
+
+                if (hours > 23 || (ampmPart && (ampmPart.toUpperCase() !== 'AM' && ampmPart.toUpperCase() !== 'PM'))) {
+                    showMessage('Invalid time format. Please use "HH:MM" or "HH:MM AM/PM".', 'error');
+                    return;
+                }
+
+                const tempDate = new Date(today.getFullYear(), today.getMonth(), today.getDate(), hours, minutes, 0);
+                
+                // Get the offset of the source timezone in minutes
+                const sourceOffset = (new Date().getTimezoneOffset() - new Date().toLocaleString('en-US', { timeZone: sourceTz }).match(/(\+|\-)(\d{2})(\d{2})$/)?.[0] || 0) * 60000;
+                
+                const tempDateUTC = new Date(tempDate.getTime() + (new Date().getTimezoneOffset() * 60000) - sourceOffset);
+                updateTimes(tempDateUTC);
+            };
+
+            // Function to clear conversion inputs and reset times
+            const clearForeignTime = () => {
+                foreignTimeInput.value = '';
+                sourceTimezoneInput.value = '';
+                updateTimes();
             };
             
             // Function to remove a timezone
-            const removeTimezone = (labelToRemove) => {
-                savedTimezones = savedTimezones.filter(tzObj => tzObj.label !== labelToRemove);
+            const removeTimezone = (label) => {
+                savedTimezones = savedTimezones.filter(tzObj => tzObj.label !== label);
                 saveTimezones();
                 renderTimezones();
-                if (foreignTimeInput.value.trim() !== '') {
-                    convertForeignTime();
+                showMessage(`Timezone for "${label}" removed.`);
+            };
+
+            // Function to filter and show suggestions
+            const showSuggestions = (input, suggestionsList, allSuggestions, activeIndex, setActiveIndex) => {
+                const inputValue = input.value.trim().toLowerCase();
+                suggestionsList.innerHTML = '';
+                suggestionsList.classList.add('hidden');
+                
+                const filteredSuggestions = allSuggestions.filter(tz => tz.toLowerCase().includes(inputValue));
+                if (filteredSuggestions.length > 0) {
+                    filteredSuggestions.forEach((suggestion, index) => {
+                        const suggestionItem = document.createElement('div');
+                        suggestionItem.className = 'source-suggestions-item';
+                        suggestionItem.textContent = suggestion;
+                        suggestionItem.addEventListener('click', () => {
+                            input.value = suggestion;
+                            suggestionsList.classList.add('hidden');
+                            setActiveIndex(-1);
+                        });
+                        suggestionsList.appendChild(suggestionItem);
+                    });
+                    suggestionsList.classList.remove('hidden');
+                    setActiveIndex(0);
+                    suggestionsList.children[0].classList.add('active');
                 } else {
-                    updateTimes();
+                    setActiveIndex(-1);
                 }
             };
             
-            // --- Drag and Drop Logic (Mouse) ---
+            // Drag and Drop Event Handlers
             timezoneListContainer.addEventListener('dragstart', (e) => {
-                // Only start drag if the event target is the drag handle
-                const dragHandle = e.target.closest('.drag-handle');
-                if (!dragHandle) {
-                    e.preventDefault();
-                    return;
+                const target = e.target.closest('.timezone-item');
+                if (target && e.target.closest('.drag-handle')) {
+                    draggedItem = target;
+                    e.dataTransfer.effectAllowed = 'move';
+                    // We need to use a timeout to prevent the original item from disappearing too fast
+                    setTimeout(() => target.classList.add('dragging'), 0);
                 }
-                
-                // Fix for ghosting issue in Chromium browsers.
-                const img = new Image();
-                img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-                e.dataTransfer.setDragImage(img, 0, 0);
-            
-                draggedItem = dragHandle.closest('.timezone-item');
-                if (!draggedItem) return;
-                
-                e.dataTransfer.effectAllowed = 'move';
-                e.dataTransfer.setData('text/plain', draggedItem.dataset.label);
-                setTimeout(() => {
-                    draggedItem.classList.add('dragging');
-                }, 0);
             });
 
             timezoneListContainer.addEventListener('dragover', (e) => {
                 e.preventDefault();
                 const target = e.target.closest('.timezone-item');
-                
-                // Clear the drag-over class from all elements first
-                document.querySelectorAll('.drag-over-valid').forEach(el => el.classList.remove('drag-over-valid'));
-
                 if (target && target !== draggedItem) {
-                    // Only allow reordering within the same type (pinned/unpinned)
-                    if (draggedItem.dataset.isPinned !== target.dataset.isPinned) {
-                        return;
-                    }
+                    const rect = target.getBoundingClientRect();
+                    const dropPosition = e.clientY - rect.top > rect.height / 2 ? 'after' : 'before';
                     
-                    // Add visual cue to the valid target
-                    target.classList.add('drag-over-valid');
-                }
-            });
-            
-            timezoneListContainer.addEventListener('drop', (e) => {
-                e.preventDefault();
-                const target = e.target.closest('.timezone-item');
-                
-                if (draggedItem && target && target !== draggedItem) {
-                    const draggedLabel = draggedItem.dataset.label;
-                    const targetLabel = target.dataset.label;
+                    const allItems = Array.from(timezoneListContainer.querySelectorAll('.timezone-item'));
+                    allItems.forEach(item => item.classList.remove('drag-over-valid'));
 
-                    const draggedIndex = savedTimezones.findIndex(tz => tz.label === draggedLabel);
-                    const targetIndex = savedTimezones.findIndex(tz => tz.label === targetLabel);
-                    
-                    // Remove the dragged item from its original position
-                    const [itemToMove] = savedTimezones.splice(draggedIndex, 1);
-                    
-                    // Re-insert it at the new position
-                    savedTimezones.splice(targetIndex, 0, itemToMove);
-                    
-                    // Update storage and re-render the list
-                    saveTimezones();
-                    renderTimezones();
+                    target.classList.add('drag-over-valid');
+                    target.dataset.dropPosition = dropPosition;
                 }
-                // Clean up classes
-                if (draggedItem) {
-                    draggedItem.classList.remove('dragging');
-                }
-                document.querySelectorAll('.drag-over-valid').forEach(el => el.classList.remove('drag-over-valid'));
-                draggedItem = null;
             });
 
             timezoneListContainer.addEventListener('dragleave', (e) => {
-                // Remove the drag-over class when leaving a target
-                if (e.target.closest('.timezone-item')) {
-                    e.target.classList.remove('drag-over-valid');
+                const target = e.target.closest('.timezone-item');
+                if (target) {
+                    target.classList.remove('drag-over-valid');
+                    target.dataset.dropPosition = '';
                 }
             });
 
-            timezoneListContainer.addEventListener('dragend', (e) => {
-                // Clean up classes
+            timezoneListContainer.addEventListener('drop', (e) => {
+                e.preventDefault();
+                const target = e.target.closest('.timezone-item');
+                if (draggedItem && target && target !== draggedItem) {
+                    const fromIndex = Array.from(timezoneListContainer.children).indexOf(draggedItem);
+                    const toIndex = Array.from(timezoneListContainer.children).indexOf(target);
+                    
+                    const dropPosition = target.dataset.dropPosition;
+
+                    if (dropPosition === 'after') {
+                        timezoneListContainer.insertBefore(draggedItem, target.nextSibling);
+                    } else {
+                        timezoneListContainer.insertBefore(draggedItem, target);
+                    }
+
+                    // Update the saved array
+                    const [removed] = savedTimezones.splice(fromIndex, 1);
+                    const newToindex = Array.from(timezoneListContainer.children).indexOf(draggedItem);
+                    savedTimezones.splice(newToindex, 0, removed);
+                    saveTimezones();
+                }
+                draggedItem.classList.remove('dragging');
+                draggedItem.classList.remove('drag-over-valid');
+            });
+            
+            timezoneListContainer.addEventListener('dragend', () => {
                 if (draggedItem) {
                     draggedItem.classList.remove('dragging');
                     draggedItem = null;
                 }
-                document.querySelectorAll('.drag-over-valid').forEach(el => el.classList.remove('drag-over-valid'));
+                const allItems = Array.from(timezoneListContainer.querySelectorAll('.timezone-item'));
+                allItems.forEach(item => item.classList.remove('drag-over-valid'));
             });
 
-            // --- Drag and Drop Logic (Touch) ---
+            // Touch Drag and Drop handlers
             timezoneListContainer.addEventListener('touchstart', (e) => {
-                // Only start drag if the touch starts on the drag handle
-                const dragHandle = e.target.closest('.drag-handle');
-                if (!dragHandle) {
-                    return;
+                const target = e.target.closest('.timezone-item');
+                if (target && e.target.closest('.drag-handle')) {
+                    e.preventDefault(); // Prevents default scrolling
+                    draggedItem = target;
+                    draggedItem.classList.add('dragging');
+                    touchMoved = false;
+                    const initialTouchY = e.touches[0].clientY;
+                    const initialScrollY = window.scrollY;
+
+                    const handleTouchMove = (moveEvent) => {
+                        const touchY = moveEvent.touches[0].clientY;
+                        const dy = touchY - initialTouchY;
+                        const newY = draggedItem.offsetTop + dy;
+                        draggedItem.style.transform = `translateY(${dy}px)`;
+                        touchMoved = true;
+
+                        // Find the new position
+                        const allItems = Array.from(timezoneListContainer.querySelectorAll('.timezone-item'));
+                        const draggedIndex = allItems.indexOf(draggedItem);
+                        let newIndex = draggedIndex;
+                        let foundNewPosition = false;
+
+                        allItems.forEach((item, index) => {
+                            if (item !== draggedItem) {
+                                const rect = item.getBoundingClientRect();
+                                if (touchY > rect.top && touchY < rect.bottom) {
+                                    newIndex = index;
+                                    foundNewPosition = true;
+                                    // Visual cue for valid drop target
+                                    allItems.forEach(i => i.classList.remove('drag-over-valid'));
+                                    item.classList.add('drag-over-valid');
+                                }
+                            }
+                        });
+
+                        // Reorder the DOM
+                        if (foundNewPosition && newIndex !== draggedIndex) {
+                            if (newIndex < draggedIndex) {
+                                timezoneListContainer.insertBefore(draggedItem, allItems[newIndex]);
+                            } else {
+                                timezoneListContainer.insertBefore(draggedItem, allItems[newIndex].nextSibling);
+                            }
+                        }
+                    };
+
+                    const handleTouchEnd = () => {
+                        draggedItem.classList.remove('dragging');
+                        draggedItem.style.transform = '';
+                        draggedItem.classList.remove('drag-over-valid');
+                        document.removeEventListener('touchmove', handleTouchMove);
+                        document.removeEventListener('touchend', handleTouchEnd);
+                        if (touchMoved) {
+                            // Update the saved array based on the new DOM order
+                            const newOrderLabels = Array.from(timezoneListContainer.children).map(item => item.dataset.label);
+                            const newSavedTimezones = newOrderLabels.map(label => savedTimezones.find(tz => tz.label === label));
+                            savedTimezones = newSavedTimezones;
+                            saveTimezones();
+                            renderTimezones(); // Re-render to clear temporary styles
+                        }
+                        draggedItem = null;
+                        touchMoved = false;
+                    };
+
+                    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+                    document.addEventListener('touchend', handleTouchEnd);
                 }
-                
-                const item = dragHandle.closest('.timezone-item');
-                if (!item) {
-                    return;
-                }
-                
-                e.preventDefault();
-                draggedItem = item;
-                touchMoved = false;
-                draggedItem.style.position = 'fixed';
-                draggedItem.style.zIndex = 1000;
-                draggedItem.style.pointerEvents = 'none';
-                const touch = e.touches[0];
-                draggedItem.style.left = touch.clientX - draggedItem.offsetWidth / 2 + 'px';
-                draggedItem.style.top = touch.clientY - draggedItem.offsetHeight / 2 + 'px';
-                draggedItem.classList.add('dragging');
-            });
+            }, { passive: false }); // Disable passive to allow preventDefault
 
-            timezoneListContainer.addEventListener('touchmove', (e) => {
-                if (!draggedItem) return;
-                e.preventDefault();
-                touchMoved = true;
-                
-                const touch = e.touches[0];
-                draggedItem.style.left = touch.clientX - draggedItem.offsetWidth / 2 + 'px';
-                draggedItem.style.top = touch.clientY - draggedItem.offsetHeight / 2 + 'px';
-
-                const target = document.elementFromPoint(touch.clientX, touch.clientY);
-                const list = timezoneListContainer;
-                const newTarget = target.closest('.timezone-item');
-                
-                // Clear previous drag-over visual cues
-                document.querySelectorAll('.drag-over-valid').forEach(el => el.classList.remove('drag-over-valid'));
-
-                if (newTarget && newTarget !== draggedItem) {
-                    if (draggedItem.dataset.isPinned !== newTarget.dataset.isPinned) {
-                        return;
-                    }
-                    
-                    newTarget.classList.add('drag-over-valid');
-                }
-            }, { passive: false });
-
-            timezoneListContainer.addEventListener('touchend', (e) => {
-                if (!draggedItem) return;
-                
-                // Find the new target
-                const touch = e.changedTouches[0];
-                const newTarget = document.elementFromPoint(touch.clientX, touch.clientY)?.closest('.timezone-item');
-                
-                if (touchMoved && newTarget && newTarget !== draggedItem) {
-                    const draggedLabel = draggedItem.dataset.label;
-                    const targetLabel = newTarget.dataset.label;
-                    
-                    const draggedIndex = savedTimezones.findIndex(tz => tz.label === draggedLabel);
-                    const targetIndex = savedTimezones.findIndex(tz => tz.label === targetLabel);
-
-                    const [itemToMove] = savedTimezones.splice(draggedIndex, 1);
-                    savedTimezones.splice(targetIndex, 0, itemToMove);
-                    
-                    saveTimezones();
-                    renderTimezones();
-                } else {
-                    // Just a tap, not a move, so check for button clicks
-                    const targetButton = e.target.closest('.pin-btn, .delete-btn');
-                    if (targetButton) {
-                        targetButton.click();
-                    }
-                }
-
-                // Reset styling
-                draggedItem.classList.remove('dragging');
-                draggedItem.style.position = '';
-                draggedItem.style.left = '';
-                draggedItem.style.top = '';
-                draggedItem.style.zIndex = '';
-                draggedItem.style.pointerEvents = '';
-                
-                document.querySelectorAll('.drag-over-valid').forEach(el => el.classList.remove('drag-over-valid'));
-                draggedItem = null;
-                touchMoved = false;
-            });
-            
-            // Event listeners for the 'add' button and input field
-            addTimezoneBtn.addEventListener('click', () => {
-                const trimmedInput = timezoneInput.value.trim();
-                if (trimmedInput) {
-                    addTimezone(trimmedInput);
-                } else {
-                    showMessage('Please enter a timezone or city.', 'error');
-                }
-            });
-
-            // Updated keyboard navigation for suggestions to handle single-item selection
-            const updateActiveSuggestion = (suggestions, index) => {
-                suggestions.forEach((s, i) => {
-                    if (i === index) {
-                        s.classList.add('bg-gray-200', 'border', 'border-dashed', 'border-black');
-                        s.scrollIntoView({ block: 'nearest' });
-                    } else {
-                        s.classList.remove('bg-gray-200', 'border', 'border-dashed', 'border-black');
-                    }
-                });
-            };
-
+            // Keyboard navigation for timezone input suggestions
             timezoneInput.addEventListener('keydown', (e) => {
-                const suggestions = suggestionsContainer.querySelectorAll('div');
+                const suggestions = suggestionsContainer.querySelectorAll('.source-suggestions-item');
+                if (suggestions.length === 0) return;
                 
                 if (e.key === 'ArrowDown') {
                     e.preventDefault();
-                    if (suggestions.length > 0) {
-                        activeSuggestionIndex = (activeSuggestionIndex + 1) % suggestions.length;
-                        updateActiveSuggestion(suggestions, activeSuggestionIndex);
+                    activeSuggestionIndex = (activeSuggestionIndex + 1) % suggestions.length;
+                    suggestions.forEach((item, index) => {
+                        item.classList.toggle('active', index === activeSuggestionIndex);
+                    });
+                    if (suggestions[activeSuggestionIndex]) {
+                        suggestions[activeSuggestionIndex].scrollIntoView({ block: 'nearest' });
                     }
                 } else if (e.key === 'ArrowUp') {
                     e.preventDefault();
-                    if (suggestions.length > 0) {
-                        activeSuggestionIndex = (activeSuggestionIndex - 1 + suggestions.length) % suggestions.length;
-                        updateActiveSuggestion(suggestions, activeSuggestionIndex);
+                    activeSuggestionIndex = (activeSuggestionIndex - 1 + suggestions.length) % suggestions.length;
+                    suggestions.forEach((item, index) => {
+                        item.classList.toggle('active', index === activeSuggestionIndex);
+                    });
+                    if (suggestions[activeSuggestionIndex]) {
+                        suggestions[activeSuggestionIndex].scrollIntoView({ block: 'nearest' });
                     }
                 } else if (e.key === 'Enter') {
-                    e.preventDefault();
-                    let valueToAdd;
-                    if (activeSuggestionIndex !== -1 && suggestions[activeSuggestionIndex]) {
-                        valueToAdd = suggestions[activeSuggestionIndex].textContent;
-                    } else {
-                        valueToAdd = timezoneInput.value.trim();
-                    }
-                    if (valueToAdd) {
-                        addTimezone(valueToAdd);
-                    }
-                } else if (e.key === 'Escape') {
-                    suggestionsContainer.classList.add('hidden');
-                    activeSuggestionIndex = -1;
-                }
-            });
-            
-            timezoneInput.addEventListener('input', () => {
-                const query = timezoneInput.value.trim().toLowerCase();
-                suggestionsContainer.innerHTML = '';
-                activeSuggestionIndex = -1;
-                
-                if (query.length > 0) {
-                    const filteredTimezones = allTimezones.filter(tz => tz.toLowerCase().includes(query));
-                    
-                    if (filteredTimezones.length > 0) {
-                        suggestionsContainer.classList.remove('hidden');
-                        filteredTimezones.slice(0, 10).forEach(tz => {
-                            const suggestionItem = document.createElement('div');
-                            suggestionItem.textContent = tz;
-                            suggestionItem.classList.add('p-2', 'cursor-pointer', 'border-b', 'border-gray-300');
-                            suggestionItem.addEventListener('click', () => {
-                                timezoneInput.value = tz;
-                                addTimezone(tz);
-                            });
-                            suggestionsContainer.appendChild(suggestionItem);
-                        });
-                        
-                        // FIX: Highlight the first item when suggestions are populated
-                        activeSuggestionIndex = 0;
-                        updateActiveSuggestion(suggestionsContainer.querySelectorAll('div'), activeSuggestionIndex);
-                        
-                    } else {
+                    e.preventDefault(); // Prevent default form submission behavior
+                    if (activeSuggestionIndex !== -1) {
+                        const selectedText = suggestions[activeSuggestionIndex].textContent;
+                        timezoneInput.value = selectedText;
                         suggestionsContainer.classList.add('hidden');
+                        activeSuggestionIndex = -1;
+                        addTimezone(selectedText);
+                    } else if (timezoneInput.value.trim() !== '') {
+                        addTimezone(timezoneInput.value.trim());
                     }
-                } else {
-                    suggestionsContainer.classList.add('hidden');
+                }
+            });
+
+            // Keyboard navigation for source timezone input suggestions
+            sourceTimezoneInput.addEventListener('keydown', (e) => {
+                const suggestions = sourceSuggestions.querySelectorAll('.source-suggestions-item');
+                if (suggestions.length === 0) return;
+                
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    sourceActiveSuggestionIndex = (sourceActiveSuggestionIndex + 1) % suggestions.length;
+                    suggestions.forEach((item, index) => {
+                        item.classList.toggle('active', index === sourceActiveSuggestionIndex);
+                    });
+                    if (suggestions[sourceActiveSuggestionIndex]) {
+                        suggestions[sourceActiveSuggestionIndex].scrollIntoView({ block: 'nearest' });
+                    }
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    sourceActiveSuggestionIndex = (sourceActiveSuggestionIndex - 1 + suggestions.length) % suggestions.length;
+                    suggestions.forEach((item, index) => {
+                        item.classList.toggle('active', index === sourceActiveSuggestionIndex);
+                    });
+                    if (suggestions[sourceActiveSuggestionIndex]) {
+                        suggestions[sourceActiveSuggestionIndex].scrollIntoView({ block: 'nearest' });
+                    }
+                } else if (e.key === 'Enter') {
+                    if (sourceActiveSuggestionIndex !== -1) {
+                        e.preventDefault();
+                        const selectedText = suggestions[sourceActiveSuggestionIndex].textContent;
+                        sourceTimezoneInput.value = selectedText;
+                        sourceSuggestions.classList.add('hidden');
+                        sourceActiveSuggestionIndex = -1;
+                        foreignTimeInput.focus();
+                    } else if (sourceTimezoneInput.value.trim() !== '') {
+                        // If no suggestion is selected, just use the typed value
+                        sourceSuggestions.classList.add('hidden');
+                        foreignTimeInput.focus();
+                    }
                 }
             });
             
+            // Event listener for timezone input
+            timezoneInput.addEventListener('input', () => {
+                showSuggestions(timezoneInput, suggestionsContainer, allTimezones, activeSuggestionIndex, (i) => activeSuggestionIndex = i);
+            });
+            
+            // Event listener for source timezone input
+            sourceTimezoneInput.addEventListener('input', () => {
+                showSuggestions(sourceTimezoneInput, sourceSuggestions, allTimezones, sourceActiveSuggestionIndex, (i) => sourceActiveSuggestionIndex = i);
+            });
+            
+            // Close suggestions when clicking outside
             document.addEventListener('click', (e) => {
-                if (!addTimezoneBtn.contains(e.target) && !timezoneInput.contains(e.target) && !suggestionsContainer.contains(e.target)) {
+                if (!e.target.closest('.add-timezone-form')) {
                     suggestionsContainer.classList.add('hidden');
                     activeSuggestionIndex = -1;
                 }
-                if (!sourceTimezoneInput.contains(e.target) && !sourceSuggestions.contains(e.target)) {
-                    sourceSuggestions.classList.remove('show');
+                if (!e.target.closest('#conversionContainer')) {
+                    sourceSuggestions.classList.add('hidden');
                     sourceActiveSuggestionIndex = -1;
                 }
             });
 
-            // Logic for the source timezone input and suggestions
-            const populateSourceSuggestions = (query = '') => {
-                sourceSuggestions.innerHTML = '';
-                
-                const allSourceTimezones = [
-                    { label: `Local Timezone (${Intl.DateTimeFormat().resolvedOptions().timeZone})`, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone },
-                    ...savedTimezones
-                ];
-                
-                const filtered = allSourceTimezones.filter(tz => tz.label.toLowerCase().includes(query.toLowerCase()));
-                
-                if (filtered.length > 0) {
-                    sourceSuggestions.classList.add('show');
-                    filtered.slice(0, 10).forEach(tz => {
-                        const suggestionItem = document.createElement('div');
-                        suggestionItem.textContent = tz.label;
-                        suggestionItem.dataset.timezone = tz.timezone;
-                        suggestionItem.classList.add('source-suggestions-item');
-                        suggestionItem.addEventListener('click', () => {
-                            sourceTimezoneInput.value = tz.label;
-                            sourceSuggestions.classList.remove('show');
-                        });
-                        sourceSuggestions.appendChild(suggestionItem);
-                    });
-                     // Highlight the top item when suggestions are populated
-                    sourceActiveSuggestionIndex = 0;
-                    const suggestions = sourceSuggestions.querySelectorAll('.source-suggestions-item');
-                    updateActiveSuggestion(suggestions, sourceActiveSuggestionIndex);
-                } else {
-                    sourceSuggestions.classList.remove('show');
-                }
-            };
-
-            sourceTimezoneInput.addEventListener('input', () => {
-                populateSourceSuggestions(sourceTimezoneInput.value.trim());
+            // Add timezone button click handler
+            addTimezoneBtn.addEventListener('click', () => {
+                addTimezone(timezoneInput.value.trim());
             });
 
-            sourceTimezoneInput.addEventListener('click', () => {
-                populateSourceSuggestions(sourceTimezoneInput.value.trim());
-            });
-
-            sourceTimezoneInput.addEventListener('keydown', (e) => {
-                const suggestions = sourceSuggestions.querySelectorAll('.source-suggestions-item');
-                if (suggestions.length === 0) return;
-
-                if (e.key === 'ArrowDown') {
-                    e.preventDefault();
-                    sourceActiveSuggestionIndex = (sourceActiveSuggestionIndex + 1) % suggestions.length;
-                    updateActiveSuggestion(suggestions, sourceActiveSuggestionIndex);
-                } else if (e.key === 'ArrowUp') {
-                    e.preventDefault();
-                    sourceActiveSuggestionIndex = (sourceActiveSuggestionIndex - 1 + suggestions.length) % suggestions.length;
-                    updateActiveSuggestion(suggestions, sourceActiveSuggestionIndex);
-                } else if (e.key === 'Enter') {
-                    e.preventDefault();
-                    if (sourceActiveSuggestionIndex !== -1) {
-                        const selectedText = suggestions[sourceActiveSuggestionIndex].textContent;
-                        sourceTimezoneInput.value = selectedText;
-                        sourceSuggestions.classList.remove('show');
-                    }
-                }
-            });
-
-            foreignConvertBtn.addEventListener('click', () => {
-                convertForeignTime();
-            });
-            
-            foreignClearBtn.addEventListener('click', () => {
-                foreignTimeInput.value = '';
-                sourceTimezoneInput.value = '';
-                sourceSuggestions.classList.remove('show');
-                updateTimes();
-                if (intervalId) {
-                    clearInterval(intervalId);
-                }
-                intervalId = setInterval(() => updateTimes(), 1000);
-            });
-
+            // Toggle 24-hour format
             hourFormatToggle.addEventListener('change', (e) => {
                 is24HourFormat = e.target.checked;
                 saveTimezones();
+                updateTimes();
             });
-            
+
+            // Foreign time conversion button
+            foreignConvertBtn.addEventListener('click', () => {
+                convertForeignTime();
+            });
+
+            // Foreign time clear button
+            foreignClearBtn.addEventListener('click', () => {
+                clearForeignTime();
+            });
+
+            // Toggle conversion section visibility
             toggleConversionBtn.addEventListener('click', () => {
                 conversionContainer.classList.toggle('expanded');
                 if (conversionContainer.classList.contains('expanded')) {
@@ -1163,4 +1103,3 @@
     </script>
 </body>
 </html>
-
