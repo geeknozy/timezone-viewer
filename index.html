@@ -6,10 +6,6 @@
     <title>Simple Timezone Viewer</title>
     <!-- Use Tailwind CSS for modern, utility-first styling -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome for icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Sortable.js for robust drag-and-drop functionality -->
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <style>
         /* Define a custom font family for the retro feel */
         @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Open+Sans:wght@400;600&display=swap');
@@ -59,15 +55,14 @@
             border-radius: 0;
             color: #000000;
             box-sizing: border-box;
-            transition: all 0.1s ease-in-out;
         }
 
-        .unified-button:hover, .unified-button:active {
+        .unified-button:hover {
             border: 2px inset #000000;
             background-color: #e0e0e0;
         }
         
-        .toggle-btn:hover, .toggle-btn:active {
+        .toggle-btn:hover {
             border: 2px inset #000000;
             background-color: #e0e0e0;
         }
@@ -128,41 +123,29 @@
             border: 2px outset #cccccc;
             border-radius: 0;
             transition: none;
-            /* We will let Sortable.js handle the cursor now */
-            cursor: move;
-        }
-        
-        .sortable-ghost {
-            opacity: 0.5;
-            background-color: #f0f0f0;
+            cursor: grab;
         }
 
+        .timezone-item.dragging {
+            opacity: 0.5;
+            border: 2px dashed #000000;
+            background-color: #cccccc;
+        }
+        
         .timezone-item:hover {
             border: 2px inset #cccccc;
             background-color: #dddddd;
         }
-        
-        /* Tooltip styles */
-        .pin-btn .tooltip, .delete-btn .tooltip, .drag-handle .tooltip {
-            visibility: hidden;
-            background-color: #000;
-            color: #fff;
-            text-align: center;
-            border-radius: 6px;
-            padding: 5px 8px;
-            position: absolute;
-            z-index: 10;
-            top: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            white-space: nowrap;
-            opacity: 0;
-            transition: opacity 0.3s;
+
+        .pin-btn .pin-icon {
+            fill: transparent;
+            stroke: #000000;
+            stroke-width: 1.5;
+            transition: fill 0.2s ease-in-out;
         }
         
-        .pin-btn:hover .tooltip, .delete-btn:hover .tooltip, .drag-handle:hover .tooltip {
-            visibility: visible;
-            opacity: 1;
+        .pin-btn.pinned .pin-icon {
+            fill: #000000;
         }
         
         /* Expand/Collapse animation */
@@ -177,156 +160,6 @@
             overflow: visible;
         }
         
-        /* New styles for better mobile touch targets */
-        .action-button {
-            width: 36px; /* Standard touch target size */
-            height: 36px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0;
-            margin: 0 2px; /* Add some spacing between buttons */
-            cursor: pointer;
-            border: 2px outset #000000;
-            background-color: #ffffff;
-            border-radius: 0;
-            transition: all 0.1s ease-in-out;
-        }
-        .action-button:hover, .action-button:active {
-            border: 2px inset #000000;
-            background-color: #e0e0e0;
-        }
-        
-        /* Styling for the Font Awesome icons */
-        .fa-thumbtack, .fa-trash-can {
-            font-size: 1rem; /* Reduced size */
-            transition: color 0.2s ease-in-out;
-        }
-
-        /* Default state: light gray icon (un-pinned) */
-        .fa-thumbtack {
-            color: #a0a0a0;
-        }
-        
-        /* Pinned state: filled black icon */
-        .pin-btn.pinned .fa-thumbtack {
-            color: #000000;
-        }
-        
-        .delete-btn .fa-trash-can {
-            color: #888888;
-        }
-        .delete-btn:hover .fa-trash-can {
-            color: #000000;
-        }
-        
-        /* New drag handle icon styling */
-        .drag-handle {
-            cursor: grab;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 36px;
-            height: 36px;
-            flex-shrink: 0;
-            border: 2px outset #000000;
-            background-color: #ffffff;
-            border-radius: 0;
-            transition: all 0.1s ease-in-out;
-        }
-        
-        .drag-handle:hover, .drag-handle:active {
-            border: 2px inset #000000;
-            background-color: #e0e0e0;
-        }
-
-        /* Use a different icon that's available in the free version */
-        .drag-handle .fa-grip-vertical {
-            color: #888888;
-            font-size: 1.25rem;
-        }
-        
-        /* New styles for success and error messages */
-        .message-box.success {
-            border: 2px outset #4CAF50; /* Green for success */
-            color: #2e7d32;
-            background-color: #e8f5e9;
-        }
-        .message-box.error {
-            border: 2px outset #F44336; /* Red for failure */
-            color: #c62828;
-            background-color: #ffebee;
-        }
-        
-        /* Pop-up Modal Styling */
-        .modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            display: none; /* Initially hidden */
-            align-items: center;
-            justify-content: center;
-            z-index: 50;
-        }
-
-        .modal-content {
-            background-color: #fff;
-            padding: 2rem;
-            border: 2px outset #F44336; /* Red border for errors */
-            border-radius: 0;
-            text-align: center;
-            max-width: 400px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-            position: relative;
-        }
-        
-        .modal-content h3 {
-            color: #c62828;
-            font-size: 1.5rem;
-            margin-bottom: 1rem;
-        }
-        
-        .modal-content p {
-            font-size: 1rem;
-            margin-bottom: 1.5rem;
-        }
-        
-        .modal-content button {
-            background-color: #F44336;
-            color: white;
-            padding: 0.5rem 1rem;
-            border: none;
-            border-radius: 0;
-            cursor: pointer;
-            border: 2px outset #a0a0a0;
-        }
-
-        .modal-content button:hover {
-            background-color: #e53935;
-        }
-
-        /* New styles for a single flex row layout */
-        .timezone-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .timezone-item .timezone-item-text {
-            flex-grow: 1;
-            flex-shrink: 1;
-            padding: 0 1rem;
-            text-align: left;
-        }
-        
-        .timezone-item .action-group {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
     </style>
 </head>
 <body class="bg-gray-200 text-black flex justify-center items-start min-h-screen p-8">
@@ -348,21 +181,6 @@
 
         <hr class="separator border-t-2 border-black my-8">
         
-        <!-- Time format toggle -->
-        <div class="format-toggle text-center mb-4 flex items-center justify-center gap-2">
-            <input type="checkbox" id="hourFormatToggle">
-            <label for="hourFormatToggle" class="text-base cursor-pointer">24-Hour Format</label>
-        </div>
-        
-        <p class="drag-instruction text-center italic text-gray-500 text-sm mb-4">Click and drag the handle on the right to reorder.</p>
-
-        <!-- List to display added timezones -->
-        <div class="timezone-list flex flex-col gap-4" id="timezoneListContainer">
-            <!-- Timezones will be added here dynamically -->
-        </div>
-
-        <hr class="separator border-t-2 border-black my-8">
-        
         <!-- Toggle button for conversion features -->
         <button class="toggle-btn unified-button w-full mb-6" id="toggleConversionBtn">Show Time Conversion Tools</button>
 
@@ -370,7 +188,7 @@
         <div id="conversionContainer">
             <div class="conversion-section border-2 border-inset border-gray-300 p-6 mb-8">
                 <p class="mt-0"><strong>Convert time from selected timezone</strong></p>
-                <div class="conversion-form flex flex-col sm:flex-row gap-4 mb-0">
+                <div class="conversion-form flex flex-col gap-4 mb-0">
                     <!-- Updated Source Timezone Input -->
                     <div class="source-input-container">
                         <input type="text" id="sourceTimezoneInput" placeholder="Select or type a source timezone" class="unified-input">
@@ -384,14 +202,20 @@
                 </div>
             </div>
         </div>
-    </div>
-    
-    <!-- Pop-up Modal for Error Messages -->
-    <div id="errorModal" class="modal">
-        <div class="modal-content unified-input-like">
-            <h3 class="modal-title">Error</h3>
-            <p class="modal-message"></p>
-            <button id="closeModalBtn" class="unified-button">OK</button>
+        
+        <hr class="separator border-t-2 border-black my-8">
+
+        <!-- Time format toggle -->
+        <div class="format-toggle text-center mb-4 flex items-center justify-center gap-2">
+            <input type="checkbox" id="hourFormatToggle">
+            <label for="hourFormatToggle" class="text-base cursor-pointer">24-Hour Format</label>
+        </div>
+        
+        <p class="drag-instruction text-center italic text-gray-500 text-sm mb-4">Drag and drop to reorder, or click the pin to pin.</p>
+
+        <!-- List to display added timezones -->
+        <div class="timezone-list flex flex-col gap-4" id="timezoneListContainer">
+            <!-- Timezones will be added here dynamically -->
         </div>
     </div>
 
@@ -408,20 +232,18 @@
             const foreignClearBtn = document.getElementById('foreignClearBtn');
             const toggleConversionBtn = document.getElementById('toggleConversionBtn');
             const conversionContainer = document.getElementById('conversionContainer');
-            const errorModal = document.getElementById('errorModal');
-            const modalMessage = errorModal.querySelector('.modal-message');
-            const closeModalBtn = document.getElementById('closeModalBtn');
 
-            // Time conversion input and suggestions
+            // NEW: Time conversion input and suggestions
             const sourceTimezoneInput = document.getElementById('sourceTimezoneInput');
             const sourceSuggestions = document.getElementById('sourceSuggestions');
             
             let savedTimezones = [];
             let intervalId = null; 
             let is24HourFormat = false;
+            let draggedItem = null;
             let activeSuggestionIndex = -1;
-            let sourceActiveSuggestionIndex = -1;
-
+            let sourceActiveSuggestionIndex = -1; // New index for the source suggestions
+            
             // Map of common abbreviations to a representative full timezone name
             const abbreviationMap = {
                 'IST': 'Asia/Kolkata',
@@ -454,21 +276,17 @@
             // Function to display messages to the user
             const showMessage = (message, type = 'info') => {
                 messageBox.textContent = message;
-                messageBox.classList.remove('hidden');
-                messageBox.classList.remove('success', 'error');
-                
+                messageBox.classList.add('show');
                 if (type === 'error') {
-                    messageBox.classList.add('error');
-                    // Show modal for errors
-                    modalMessage.textContent = message;
-                    errorModal.style.display = 'flex';
+                    messageBox.classList.add('text-red-600', 'border-red-600');
+                    messageBox.classList.remove('text-green-600', 'border-green-600');
                 } else {
-                    messageBox.classList.add('success');
-                    // Use toast for success messages
-                    setTimeout(() => {
-                        messageBox.classList.add('hidden');
-                    }, 3000);
+                    messageBox.classList.add('text-green-600', 'border-green-600');
+                    messageBox.classList.remove('text-red-600', 'border-red-600');
                 }
+                setTimeout(() => {
+                    messageBox.classList.remove('show', 'text-red-600', 'border-red-600', 'text-green-600', 'border-green-600');
+                }, 3000);
             };
             
             // Function to check if local storage is available
@@ -597,30 +415,32 @@
             const renderTimezones = () => {
                 timezoneListContainer.innerHTML = '';
                 sortTimezones();
+                
                 if (savedTimezones.length === 0) {
                     const noTimezonesMsg = document.createElement('p');
                     noTimezonesMsg.classList.add('text-center', 'text-gray-500');
                     noTimezonesMsg.textContent = 'No timezones added yet.';
                     timezoneListContainer.appendChild(noTimezonesMsg);
                 } else {
-                    savedTimezones.forEach((tzObj) => {
+                    savedTimezones.forEach((tzObj, index) => {
                         const timezoneItem = document.createElement('div');
-                        timezoneItem.className = `timezone-item flex items-center justify-between p-4 bg-gray-100 transition-none`;
+                        // Use a single flex container for better alignment
+                        timezoneItem.className = `timezone-item flex justify-between items-center p-4 bg-gray-100 transition-none`;
                         timezoneItem.dataset.label = tzObj.label;
-
+                        timezoneItem.dataset.isPinned = tzObj.isPinned;
+                        timezoneItem.draggable = true;
+                        
                         const pinBtn = document.createElement('button');
-                        pinBtn.className = `pin-btn action-button flex items-center justify-center p-0 border-none bg-transparent cursor-pointer flex-shrink-0 relative`;
+                        pinBtn.className = `pin-btn flex items-center justify-center w-6 h-6 p-0 border-none bg-transparent cursor-pointer flex-shrink-0 ${tzObj.isPinned ? 'pinned' : ''}`;
                         pinBtn.setAttribute('aria-label', 'Pin timezone');
                         pinBtn.innerHTML = `
-                            <i class="fa-solid fa-thumbtack"></i>
-                            <span class="tooltip">Pin</span>
+                            <svg class="pin-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+                                <path d="M14 4h-4v9.64l-2 1.4V16h8v-0.96l-2-1.4V4zM12 2C9.24 2 7 4.24 7 7c0 1.2.4 2.3 1.08 3.2L5 13.91V22h14v-8.09L15.92 10.2c.68-.9 1.08-2 1.08-3.2C17 4.24 14.76 2 12 2z"/>
+                            </svg>
                         `;
-                        if (tzObj.isPinned) {
-                            pinBtn.classList.add('pinned');
-                        }
-                        
+
                         const textDiv = document.createElement('div');
-                        textDiv.className = 'timezone-item-text flex-grow flex-shrink';
+                        textDiv.className = 'timezone-item-text flex-grow flex-shrink min-w-0 pr-4';
                         const strongTag = document.createElement('strong');
                         strongTag.textContent = tzObj.label;
                         const pTag = document.createElement('p');
@@ -628,56 +448,22 @@
                         pTag.innerHTML += `<br><span class="time text-lg font-bold" data-timezone="${tzObj.timezone}"></span>`;
                         textDiv.appendChild(pTag);
 
-                        const actionGroup = document.createElement('div');
-                        actionGroup.className = 'action-group flex items-center gap-2 flex-shrink-0';
-                        
                         const removeBtn = document.createElement('button');
-                        removeBtn.className = 'delete-btn action-button flex items-center justify-center relative';
-                        removeBtn.setAttribute('aria-label', 'Remove timezone');
-                        removeBtn.innerHTML = `
-                            <i class="fa-solid fa-trash-can"></i>
-                            <span class="tooltip">Remove</span>
-                        `;
-
-                        const dragHandle = document.createElement('div');
-                        dragHandle.className = 'drag-handle relative';
-                        dragHandle.innerHTML = `
-                            <i class="fa-solid fa-grip-vertical"></i>
-                            <span class="tooltip">Drag to reorder</span>
-                        `;
+                        removeBtn.className = 'remove-btn unified-button flex-shrink-0';
+                        removeBtn.textContent = 'Remove';
                         
-                        actionGroup.appendChild(removeBtn);
-                        actionGroup.appendChild(dragHandle);
-
+                        // Append elements directly to the timezoneItem
                         timezoneItem.appendChild(pinBtn);
                         timezoneItem.appendChild(textDiv);
-                        timezoneItem.appendChild(actionGroup);
+                        timezoneItem.appendChild(removeBtn);
+
+                        removeBtn.addEventListener('click', () => removeTimezone(tzObj.label));
+                        pinBtn.addEventListener('click', () => togglePin(tzObj.label));
 
                         timezoneListContainer.appendChild(timezoneItem);
                     });
                 }
                 updateTimes();
-                // Initialize Sortable.js after rendering the elements
-                new Sortable(timezoneListContainer, {
-                    animation: 150,
-                    handle: '.drag-handle',
-                    ghostClass: 'sortable-ghost',
-                    onEnd: (evt) => {
-                        // Get the old and new index from the event
-                        const oldIndex = evt.oldIndex;
-                        const newIndex = evt.newIndex;
-                        
-                        // Use splice to move the item in the savedTimezones array
-                        const [movedItem] = savedTimezones.splice(oldIndex, 1);
-                        savedTimezones.splice(newIndex, 0, movedItem);
-
-                        // Persist the new order to local storage
-                        saveTimezones();
-                        
-                        // Re-render to ensure pinned items stay sorted correctly
-                        renderTimezones();
-                    }
-                });
             };
 
             // Function to toggle the pinned state of a timezone
@@ -694,17 +480,12 @@
             const updateTimes = (inputDate = null) => {
                 const timeElements = document.querySelectorAll('.timezone-item .time');
                 const now = inputDate || new Date();
-
                 timeElements.forEach(el => {
                     const tz = el.getAttribute('data-timezone');
                     try {
                         const options = {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                            second: '2-digit',
-                            timeZoneName: 'short',
-                            timeZone: tz,
-                            hour12: !is24HourFormat
+                            hour: '2-digit', minute: '2-digit', second: '2-digit',
+                            timeZoneName: 'short', timeZone: tz, hour12: !is24HourFormat
                         };
                         const timeString = new Intl.DateTimeFormat('en-US', options).format(now);
                         el.textContent = timeString;
@@ -715,7 +496,7 @@
                     }
                 });
             };
-
+            
             // Function to parse a foreign time and convert it to all timezones
             const convertForeignTime = () => {
                 const foreignTimeStr = foreignTimeInput.value.trim();
@@ -726,211 +507,310 @@
                     return;
                 }
                 
-                const sourceTz = abbreviationMap[sourceTzLabel.toUpperCase()] || sourceTzLabel;
-                
+                // Find the full timezone name from the saved label
+                const sourceTz = savedTimezones.find(tz => tz.label === sourceTzLabel)?.timezone || sourceTzLabel;
+
+                // Check for a valid timezone before proceeding
                 try {
                     Intl.DateTimeFormat('en-US', { timeZone: sourceTz }).format(new Date());
                 } catch (e) {
-                    showMessage(`Invalid source timezone: "${sourceTzLabel}".`, 'error');
-                    return;
-                }
-                
-                const today = new Date();
-                const [timePart, ampmPart] = foreignTimeStr.split(' ');
-                let [hours, minutes] = timePart.split(':');
-                hours = parseInt(hours, 10);
-                minutes = parseInt(minutes, 10);
-
-                if (isNaN(hours) || isNaN(minutes) || hours < 0 || minutes < 0 || minutes > 59) {
-                    showMessage('Invalid time format. Please use "HH:MM" or "HH:MM AM/PM".', 'error');
+                    showMessage('Invalid source timezone selected.', 'error');
                     return;
                 }
 
-                if (ampmPart) { // 12-hour format
-                    const ampm = ampmPart.toUpperCase();
-                    if (ampm === 'PM' && hours < 12) {
-                        hours += 12;
-                    } else if (ampm === 'AM' && hours === 12) {
-                        hours = 0;
-                    }
+                if (intervalId) {
+                    clearInterval(intervalId);
                 }
+                
+                const ampmMatch = foreignTimeStr.match(/^(\d{1,2}):(\d{2})\s*([AP]M)/i);
+                const militaryMatch = foreignTimeStr.match(/^(\d{1,2}):(\d{2})$/);
 
-                if (hours > 23 || (ampmPart && (ampmPart.toUpperCase() !== 'AM' && ampmPart.toUpperCase() !== 'PM'))) {
-                    showMessage('Invalid time format. Please use "HH:MM" or "HH:MM AM/PM".', 'error');
+                let hours, minutes;
+                if (ampmMatch) {
+                    hours = parseInt(ampmMatch[1], 10);
+                    minutes = parseInt(ampmMatch[2], 10);
+                    const ampm = ampmMatch[3].toUpperCase();
+                    if (ampm === 'PM' && hours < 12) hours += 12;
+                    if (ampm === 'AM' && hours === 12) hours = 0;
+                } else if (militaryMatch) {
+                    hours = parseInt(militaryMatch[1], 10);
+                    minutes = parseInt(militaryMatch[2], 10);
+                } else {
+                    showMessage('Invalid time format. Please use HH:MM or HH:MM AM/PM.', 'error');
+                    updateTimes();
+                    return;
+                }
+                
+                if (hours > 23 || minutes > 59) {
+                    showMessage('Invalid time format. Please use HH:MM or HH:MM AM/PM.', 'error');
+                    updateTimes();
                     return;
                 }
 
-                const tempDate = new Date(today.getFullYear(), today.getMonth(), today.getDate(), hours, minutes, 0);
-                
-                // Get the offset of the source timezone in minutes
-                const sourceOffset = (new Date().getTimezoneOffset() - new Date().toLocaleString('en-US', { timeZone: sourceTz }).match(/(\+|\-)(\d{2})(\d{2})$/)?.[0] || 0) * 60000;
-                
-                const tempDateUTC = new Date(tempDate.getTime() + (new Date().getTimezoneOffset() * 60000) - sourceOffset);
-                updateTimes(tempDateUTC);
-            };
+                try {
+                    const localTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                    
+                    const localNow = new Date();
+                    const nowInForeignUTC = new Date(localNow.toLocaleString('en-US', { timeZone: sourceTz }));
+                    const nowInLocalUTC = new Date(localNow.toLocaleString('en-US', { timeZone: localTimezone }));
+                    const offsetMs = nowInForeignUTC.getTime() - nowInLocalUTC.getTime();
 
-            // Function to clear conversion inputs and reset times
-            const clearForeignTime = () => {
-                foreignTimeInput.value = '';
-                sourceTimezoneInput.value = '';
-                updateTimes();
+                    const convertedDate = new Date();
+                    convertedDate.setHours(hours, minutes, 0, 0);
+                    convertedDate.setTime(convertedDate.getTime() - offsetMs);
+                    
+                    updateTimes(convertedDate);
+
+                } catch (e) {
+                    showMessage('Invalid timezone selected.', 'error');
+                    updateTimes();
+                }
             };
             
             // Function to remove a timezone
-            const removeTimezone = (label) => {
-                savedTimezones = savedTimezones.filter(tzObj => tzObj.label !== label);
+            const removeTimezone = (labelToRemove) => {
+                savedTimezones = savedTimezones.filter(tzObj => tzObj.label !== labelToRemove);
                 saveTimezones();
                 renderTimezones();
-                showMessage(`Timezone for "${label}" removed.`);
-            };
-
-            // Function to filter and show suggestions
-            const showSuggestions = (input, suggestionsList, allSuggestions, activeIndex, setActiveIndex) => {
-                const inputValue = input.value.trim().toLowerCase();
-                suggestionsList.innerHTML = '';
-                suggestionsList.classList.add('hidden');
-                
-                const filteredSuggestions = allSuggestions.filter(tz => tz.toLowerCase().includes(inputValue));
-                if (filteredSuggestions.length > 0) {
-                    filteredSuggestions.forEach((suggestion, index) => {
-                        const suggestionItem = document.createElement('div');
-                        suggestionItem.className = 'source-suggestions-item';
-                        suggestionItem.textContent = suggestion;
-                        suggestionItem.addEventListener('click', () => {
-                            input.value = suggestion;
-                            suggestionsList.classList.add('hidden');
-                            setActiveIndex(-1);
-                        });
-                        suggestionsList.appendChild(suggestionItem);
-                    });
-                    suggestionsList.classList.remove('hidden');
-                    setActiveIndex(0);
-                    suggestionsList.children[0].classList.add('active');
+                if (foreignTimeInput.value.trim() !== '') {
+                    convertForeignTime();
                 } else {
-                    setActiveIndex(-1);
+                    updateTimes();
                 }
             };
             
-            // Keyboard navigation for timezone input suggestions
-            timezoneInput.addEventListener('keydown', (e) => {
-                const suggestions = suggestionsContainer.querySelectorAll('.source-suggestions-item');
-                if (suggestions.length === 0) return;
-                
-                if (e.key === 'ArrowDown') {
-                    e.preventDefault();
-                    activeSuggestionIndex = (activeSuggestionIndex + 1) % suggestions.length;
-                    suggestions.forEach((item, index) => {
-                        item.classList.toggle('active', index === activeSuggestionIndex);
-                    });
-                    if (suggestions[activeSuggestionIndex]) {
-                        suggestions[activeSuggestionIndex].scrollIntoView({ block: 'nearest' });
-                    }
-                } else if (e.key === 'ArrowUp') {
-                    e.preventDefault();
-                    activeSuggestionIndex = (activeSuggestionIndex - 1 + suggestions.length) % suggestions.length;
-                    suggestions.forEach((item, index) => {
-                        item.classList.toggle('active', index === activeSuggestionIndex);
-                    });
-                    if (suggestions[activeSuggestionIndex]) {
-                        suggestions[activeSuggestionIndex].scrollIntoView({ block: 'nearest' });
-                    }
-                } else if (e.key === 'Enter') {
-                    e.preventDefault();
-                    if (activeSuggestionIndex !== -1) {
-                        const selectedText = suggestions[activeSuggestionIndex].textContent;
-                        timezoneInput.value = selectedText;
-                        suggestionsContainer.classList.add('hidden');
-                        activeSuggestionIndex = -1;
-                        addTimezone(selectedText);
-                    } else if (timezoneInput.value.trim() !== '') {
-                        addTimezone(timezoneInput.value.trim());
+            // Drag and Drop Logic
+            timezoneListContainer.addEventListener('dragstart', (e) => {
+                draggedItem = e.target.closest('.timezone-item');
+                if (!draggedItem) return;
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', draggedItem.dataset.label);
+                setTimeout(() => {
+                    draggedItem.classList.add('dragging');
+                }, 0);
+            });
+
+            timezoneListContainer.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                const target = e.target.closest('.timezone-item');
+                const list = timezoneListContainer;
+
+                if (target && target !== draggedItem) {
+                    const rect = target.getBoundingClientRect();
+                    const next = (e.clientY - rect.top) / (rect.bottom - rect.top) > .5;
+                    
+                    if (draggedItem.dataset.isPinned !== target.dataset.isPinned) return;
+
+                    if (next) {
+                        list.insertBefore(draggedItem, target.nextElementSibling);
+                    } else {
+                        list.insertBefore(draggedItem, target);
                     }
                 }
             });
 
-            // Keyboard navigation for source timezone input suggestions
-            sourceTimezoneInput.addEventListener('keydown', (e) => {
-                const suggestions = sourceSuggestions.querySelectorAll('.source-suggestions-item');
-                if (suggestions.length === 0) return;
+            timezoneListContainer.addEventListener('dragend', (e) => {
+                if (draggedItem) {
+                    draggedItem.classList.remove('dragging');
+                    draggedItem = null;
+                    updateSavedOrder();
+                }
+            });
+
+            // Function to update the order in the savedTimezones array based on the DOM
+            const updateSavedOrder = () => {
+                const itemsInDom = Array.from(timezoneListContainer.children).filter(el => el.classList.contains('timezone-item'));
+                const newOrder = itemsInDom.map(label => savedTimezones.find(tz => tz.label === label));
+                
+                const newSavedTimezones = newOrder.map(label => savedTimezones.find(tz => tz.label === label));
+                savedTimezones = newSavedTimezones;
+                saveTimezones();
+            };
+
+            // Event listeners for the 'add' button and input field
+            addTimezoneBtn.addEventListener('click', () => {
+                const trimmedInput = timezoneInput.value.trim();
+                if (trimmedInput) {
+                    addTimezone(trimmedInput);
+                } else {
+                    showMessage('Please enter a timezone or city.', 'error');
+                }
+            });
+
+            // Updated keyboard navigation for suggestions to handle single-item selection
+            timezoneInput.addEventListener('keydown', (e) => {
+                const suggestions = suggestionsContainer.querySelectorAll('div');
                 
                 if (e.key === 'ArrowDown') {
                     e.preventDefault();
-                    sourceActiveSuggestionIndex = (sourceActiveSuggestionIndex + 1) % suggestions.length;
-                    suggestions.forEach((item, index) => {
-                        item.classList.toggle('active', index === sourceActiveSuggestionIndex);
-                    });
-                    if (suggestions[sourceActiveSuggestionIndex]) {
-                        suggestions[sourceActiveSuggestionIndex].scrollIntoView({ block: 'nearest' });
+                    if (suggestions.length > 0) {
+                        activeSuggestionIndex = (activeSuggestionIndex + 1) % suggestions.length;
+                        updateActiveSuggestion(suggestions, activeSuggestionIndex);
                     }
                 } else if (e.key === 'ArrowUp') {
                     e.preventDefault();
-                    sourceActiveSuggestionIndex = (sourceActiveSuggestionIndex - 1 + suggestions.length) % suggestions.length;
-                    suggestions.forEach((item, index) => {
-                        item.classList.toggle('active', index === sourceActiveSuggestionIndex);
-                    });
-                    if (suggestions[sourceActiveSuggestionIndex]) {
-                        suggestions[sourceActiveSuggestionIndex].scrollIntoView({ block: 'nearest' });
+                    if (suggestions.length > 0) {
+                        activeSuggestionIndex = (activeSuggestionIndex - 1 + suggestions.length) % suggestions.length;
+                        updateActiveSuggestion(suggestions, activeSuggestionIndex);
                     }
                 } else if (e.key === 'Enter') {
-                    if (sourceActiveSuggestionIndex !== -1) {
-                        e.preventDefault();
-                        const selectedText = suggestions[sourceActiveSuggestionIndex].textContent;
-                        sourceTimezoneInput.value = selectedText;
-                        sourceSuggestions.classList.add('hidden');
-                        sourceActiveSuggestionIndex = -1;
-                        foreignTimeInput.focus();
-                    } else if (sourceTimezoneInput.value.trim() !== '') {
-                        sourceSuggestions.classList.add('hidden');
-                        foreignTimeInput.focus();
+                    e.preventDefault();
+                    let valueToAdd;
+                    if (activeSuggestionIndex !== -1 && suggestions[activeSuggestionIndex]) {
+                        valueToAdd = suggestions[activeSuggestionIndex].textContent;
+                    } else {
+                        valueToAdd = timezoneInput.value.trim();
                     }
-                }
-            });
-            
-            // Event listener for timezone input
-            timezoneInput.addEventListener('input', () => {
-                showSuggestions(timezoneInput, suggestionsContainer, allTimezones, activeSuggestionIndex, (i) => activeSuggestionIndex = i);
-            });
-            
-            // Event listener for source timezone input
-            sourceTimezoneInput.addEventListener('input', () => {
-                showSuggestions(sourceTimezoneInput, sourceSuggestions, allTimezones, sourceActiveSuggestionIndex, (i) => sourceActiveSuggestionIndex = i);
-            });
-            
-            // Close suggestions when clicking outside
-            document.addEventListener('click', (e) => {
-                if (!e.target.closest('.add-timezone-form')) {
+                    if (valueToAdd) {
+                        addTimezone(valueToAdd);
+                    }
+                } else if (e.key === 'Escape') {
                     suggestionsContainer.classList.add('hidden');
                     activeSuggestionIndex = -1;
                 }
-                if (!e.target.closest('#conversionContainer')) {
-                    sourceSuggestions.classList.add('hidden');
+            });
+
+            const updateActiveSuggestion = (suggestions, index) => {
+                suggestions.forEach((s, i) => {
+                    if (i === index) {
+                        s.classList.add('bg-gray-200', 'border', 'border-dashed', 'border-black');
+                        s.scrollIntoView({ block: 'nearest' });
+                    } else {
+                        s.classList.remove('bg-gray-200', 'border', 'border-dashed', 'border-black');
+                    }
+                });
+            };
+
+            timezoneInput.addEventListener('input', () => {
+                const query = timezoneInput.value.trim().toLowerCase();
+                suggestionsContainer.innerHTML = '';
+                activeSuggestionIndex = -1;
+                
+                if (query.length > 0) {
+                    const filteredTimezones = allTimezones.filter(tz => tz.toLowerCase().includes(query));
+                    
+                    if (filteredTimezones.length > 0) {
+                        suggestionsContainer.classList.remove('hidden');
+                        filteredTimezones.slice(0, 10).forEach(tz => {
+                            const suggestionItem = document.createElement('div');
+                            suggestionItem.textContent = tz;
+                            suggestionItem.classList.add('p-2', 'cursor-pointer', 'border-b', 'border-gray-300');
+                            suggestionItem.addEventListener('click', () => {
+                                timezoneInput.value = tz;
+                                addTimezone(tz);
+                            });
+                            suggestionsContainer.appendChild(suggestionItem);
+                        });
+                        
+                        if (filteredTimezones.length === 1) {
+                            activeSuggestionIndex = 0;
+                            updateActiveSuggestion(suggestionsContainer.querySelectorAll('div'), activeSuggestionIndex);
+                        }
+                        
+                    } else {
+                        suggestionsContainer.classList.add('hidden');
+                    }
+                } else {
+                    suggestionsContainer.classList.add('hidden');
+                }
+            });
+            
+            document.addEventListener('click', (e) => {
+                if (!addTimezoneBtn.contains(e.target) && !timezoneInput.contains(e.target) && !suggestionsContainer.contains(e.target)) {
+                    suggestionsContainer.classList.add('hidden');
+                    activeSuggestionIndex = -1;
+                }
+                if (!sourceTimezoneInput.contains(e.target) && !sourceSuggestions.contains(e.target)) {
+                    sourceSuggestions.classList.remove('show');
                     sourceActiveSuggestionIndex = -1;
                 }
             });
 
-            // Add timezone button click handler
-            addTimezoneBtn.addEventListener('click', () => {
-                addTimezone(timezoneInput.value.trim());
+            // NEW: Logic for the source timezone input and suggestions
+            const populateSourceSuggestions = (query = '') => {
+                sourceSuggestions.innerHTML = '';
+                
+                const allSourceTimezones = [
+                    { label: `Local Timezone (${Intl.DateTimeFormat().resolvedOptions().timeZone})`, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone },
+                    ...savedTimezones
+                ];
+                
+                const filtered = allSourceTimezones.filter(tz => tz.label.toLowerCase().includes(query.toLowerCase()));
+                
+                if (filtered.length > 0) {
+                    sourceSuggestions.classList.add('show');
+                    filtered.slice(0, 10).forEach(tz => {
+                        const suggestionItem = document.createElement('div');
+                        suggestionItem.textContent = tz.label;
+                        suggestionItem.dataset.timezone = tz.timezone;
+                        suggestionItem.classList.add('source-suggestions-item');
+                        suggestionItem.addEventListener('click', () => {
+                            sourceTimezoneInput.value = tz.label;
+                            sourceSuggestions.classList.remove('show');
+                        });
+                        sourceSuggestions.appendChild(suggestionItem);
+                    });
+                     // Highlight the top item when suggestions are populated
+                    sourceActiveSuggestionIndex = 0;
+                    const suggestions = sourceSuggestions.querySelectorAll('.source-suggestions-item');
+                    updateActiveSuggestion(suggestions, sourceActiveSuggestionIndex);
+                } else {
+                    sourceSuggestions.classList.remove('show');
+                }
+            };
+
+            // Event listener for input
+            sourceTimezoneInput.addEventListener('input', () => {
+                populateSourceSuggestions(sourceTimezoneInput.value.trim());
             });
 
-            // Toggle 24-hour format
-            hourFormatToggle.addEventListener('change', (e) => {
-                is24HourFormat = e.target.checked;
-                saveTimezones();
-                updateTimes();
+            // Event listener for click (new)
+            sourceTimezoneInput.addEventListener('click', () => {
+                populateSourceSuggestions(sourceTimezoneInput.value.trim());
             });
 
-            // Foreign time conversion button
+            sourceTimezoneInput.addEventListener('keydown', (e) => {
+                const suggestions = sourceSuggestions.querySelectorAll('.source-suggestions-item');
+                if (suggestions.length === 0) return;
+
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    sourceActiveSuggestionIndex = (sourceActiveSuggestionIndex + 1) % suggestions.length;
+                    updateActiveSuggestion(suggestions, sourceActiveSuggestionIndex);
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    sourceActiveSuggestionIndex = (sourceActiveSuggestionIndex - 1 + suggestions.length) % suggestions.length;
+                    updateActiveSuggestion(suggestions, sourceActiveSuggestionIndex);
+                } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (sourceActiveSuggestionIndex !== -1) {
+                        const selectedText = suggestions[sourceActiveSuggestionIndex].textContent;
+                        sourceTimezoneInput.value = selectedText;
+                        sourceSuggestions.classList.remove('show');
+                    }
+                }
+            });
+
             foreignConvertBtn.addEventListener('click', () => {
                 convertForeignTime();
             });
-
-            // Foreign time clear button
+            
             foreignClearBtn.addEventListener('click', () => {
-                clearForeignTime();
+                foreignTimeInput.value = '';
+                sourceTimezoneInput.value = '';
+                sourceSuggestions.classList.remove('show');
+                updateTimes();
+                if (intervalId) {
+                    clearInterval(intervalId);
+                }
+                intervalId = setInterval(() => updateTimes(), 1000);
             });
 
-            // Toggle conversion section visibility
+            hourFormatToggle.addEventListener('change', (e) => {
+                is24HourFormat = e.target.checked;
+                saveTimezones();
+            });
+            
             toggleConversionBtn.addEventListener('click', () => {
                 conversionContainer.classList.toggle('expanded');
                 if (conversionContainer.classList.contains('expanded')) {
@@ -940,33 +820,8 @@
                 }
             });
 
-            // NEW: Unified event delegation for delete and pin buttons
-            timezoneListContainer.addEventListener('click', (e) => {
-                const deleteButton = e.target.closest('.delete-btn');
-                const pinButton = e.target.closest('.pin-btn');
-
-                if (deleteButton) {
-                    const timezoneItem = deleteButton.closest('.timezone-item');
-                    if (timezoneItem) {
-                        const label = timezoneItem.dataset.label;
-                        removeTimezone(label);
-                    }
-                } else if (pinButton) {
-                    const timezoneItem = pinButton.closest('.timezone-item');
-                    if (timezoneItem) {
-                        const label = timezoneItem.dataset.label;
-                        togglePin(label);
-                    }
-                }
-            });
-
-            // Event listener for the modal close button
-            closeModalBtn.addEventListener('click', () => {
-                errorModal.style.display = 'none';
-            });
-            
             init();
-            
+
             intervalId = setInterval(() => updateTimes(), 1000);
         });
     </script>
