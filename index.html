@@ -4,70 +4,65 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Simple Timezone Viewer</title>
-    <!-- Use Tailwind CSS for modern, utility-first styling -->
-    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Define a custom font family for the retro feel */
-        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&family=Open+Sans:wght@400;600&display=swap');
-        
+        /* Base styling for a black and white theme with a retro feel */
         body {
             font-family: 'Roboto', 'Open Sans', Verdana, sans-serif;
+            background-color: #f0f0f0; /* Light gray background */
+            color: #000000; /* Black text */
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            margin: 0;
+            padding: 2rem;
+            box-sizing: border-box;
+            line-height: 1.6;
         }
 
-        /* Base styling for a black and white theme with a retro feel */
+        /* Container with a classic border effect */
         .container {
-            border: 2px outset #cccccc;
-            box-shadow: none;
-            border-radius: 0;
-            background-color: #ffffff;
-        }
-
-        .header {
-            background: linear-gradient(to right, #f0f0f0, #e0e0e0);
-            border: 2px outset #cccccc;
-        }
-        
-        .header h1 {
-            text-shadow: 2px 2px 0 #cccccc;
-        }
-
-        /* --- UNIFORM STYLING FOR ALL INPUTS, SELECTS, AND BUTTONS --- */
-        .unified-input {
-            height: 2.5rem;
-            padding: 0 0.75rem;
-            font-size: 1rem;
-            border: 2px inset #000000;
-            border-radius: 0;
-            background-color: #ffffff;
-            color: #000000;
-            box-shadow: none;
-            box-sizing: border-box;
             width: 100%;
-        }
-
-        .unified-button {
-            height: 2.5rem;
-            padding: 0 1rem;
-            font-size: 1rem;
-            border: 2px outset #000000;
-            background-color: #ffffff;
-            cursor: pointer;
+            max-width: 600px;
+            padding: 2rem;
             border-radius: 0;
-            color: #000000;
-            box-sizing: border-box;
+            background-color: #ffffff; /* White background */
+            box-shadow: none;
+            border: 2px outset #cccccc; /* Subtle 3D border */
         }
 
-        .unified-button:hover {
-            border: 2px inset #000000;
-            background-color: #e0e0e0;
+        /* Header styling with a subtle gradient */
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+            background: linear-gradient(to right, #f0f0f0, #e0e0e0);
+            padding: 1rem;
+            border: 2px outset #cccccc;
         }
-        
-        .toggle-btn:hover {
-            border: 2px inset #000000;
-            background-color: #e0e0e0;
+
+        .header h1 {
+            font-size: 2rem;
+            margin: 0;
+            color: #000000;
+            text-shadow: 2px 2px 0 #cccccc; /* Gray text shadow */
         }
         
         /* Time format toggle styling */
+        .format-toggle {
+            text-align: center;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .format-toggle label {
+            font-size: 1rem;
+            cursor: pointer;
+            margin-right: 0.5rem;
+            color: #000000;
+        }
+
         .format-toggle input[type="checkbox"] {
             cursor: pointer;
             appearance: none;
@@ -76,54 +71,136 @@
             background-color: #ffffff;
             border: 2px inset #000000;
             position: relative;
+            top: 1px;
         }
 
         .format-toggle input[type="checkbox"]:checked {
-            background-color: #000000;
+            background-color: #000000; /* Black checked state */
             border: 2px outset #ffffff;
         }
 
-        /* Custom dropdown styles - Now an input with suggestions */
-        .source-input-container {
-            position: relative;
-            width: 100%;
+        .format-toggle .checkmark {
+            position: absolute;
+            top: 1px;
+            left: 1px;
+            width: 12px;
+            height: 12px;
+            pointer-events: none;
+            display: none;
         }
 
-        .source-suggestions-list {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            z-index: 20;
-            background-color: #ffffff;
-            border: 2px inset #000000;
-            border-top: none;
-            max-height: 48vh;
-            overflow-y: auto;
-            display: none; /* Initially hidden */
-        }
-        
-        .source-suggestions-list.show {
+        .format-toggle input[type="checkbox"]:checked ~ .checkmark {
             display: block;
         }
+
+        /* --- UNIFORM STYLING FOR ALL INPUTS, SELECTS, AND BUTTONS --- */
         
-        .source-suggestions-item {
-            padding: 0.5rem 0.75rem;
+        /* Unified style for all text inputs and select dropdowns */
+        .conversion-form input[type="text"],
+        .add-timezone-form input[type="text"],
+        .conversion-section input[type="text"] {
+            height: 2.5rem; /* Standardized height */
+            padding: 0 0.75rem; /* Uniform horizontal padding */
+            font-size: 1rem;
+            border: 2px inset #000000;
+            border-radius: 0;
+            background-color: #ffffff;
+            color: #000000;
+            box-shadow: none;
+            box-sizing: border-box;
+            width: 100%; /* Ensure they fill their container */
+        }
+
+        /* Unified style for all buttons */
+        .add-timezone-form button,
+        .timezone-item .remove-btn,
+        .modal-buttons button,
+        .conversion-btn-group button,
+        .toggle-btn {
+            height: 2.5rem; /* Standardized height */
+            padding: 0 1rem; /* Uniform horizontal padding */
+            font-size: 1rem;
+            border: 2px outset #000000;
+            background-color: #ffffff;
             cursor: pointer;
-            border-bottom: 1px solid #e0e0e0;
+            border-radius: 0;
+            color: #000000;
+            box-sizing: border-box;
         }
         
-        .source-suggestions-item:hover, .source-suggestions-item.active {
+        .add-timezone-form button:hover,
+        .timezone-item .remove-btn:hover,
+        .modal-buttons button:hover,
+        .conversion-btn-group button:hover,
+        .toggle-btn:hover {
+            border: 2px inset #000000;
+            background-color: #e0e0e0;
+        }
+        
+        /* --- END OF UNIFORM STYLING --- */
+        
+        .conversion-btn-group {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .conversion-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .conversion-form p {
+            margin: 0;
+        }
+
+        /* Message box for displaying user feedback or errors */
+        .message-box {
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            border-radius: 0;
             background-color: #f0f0f0;
-            border: 1px dashed #000000;
+            color: #000000;
+            border: 2px inset #cccccc;
+            display: none; /* Hidden by default */
         }
-        
-        /* Drag and Drop Styling */
+        .message-box.show {
+            display: block;
+        }
+
+        .drag-instruction {
+            text-align: center;
+            font-style: italic;
+            font-size: 0.9rem;
+            color: #555;
+            margin-bottom: 1rem;
+        }
+
+        /* Container for the timezone list */
+        .timezone-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
         .timezone-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background-color: #eeeeee; /* Light gray item background */
             border: 2px outset #cccccc;
             border-radius: 0;
+            box-shadow: none;
             transition: none;
-            cursor: grab;
+            cursor: grab; /* Indicates draggability */
+        }
+
+        .timezone-item:hover {
+            border: 2px inset #cccccc;
+            background-color: #dddddd;
         }
 
         .timezone-item.dragging {
@@ -131,24 +208,144 @@
             border: 2px dashed #000000;
             background-color: #cccccc;
         }
-        
-        .timezone-item:hover {
-            border: 2px inset #cccccc;
-            background-color: #dddddd;
+
+        .timezone-item-content {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
         }
 
+        .timezone-item-text {
+            flex-grow: 1;
+        }
+
+        .timezone-item p {
+            margin: 0;
+        }
+
+        .timezone-item .time {
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        /* Pin button styling */
+        .pin-btn {
+            background: none;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
         .pin-btn .pin-icon {
-            fill: transparent;
-            stroke: #000000;
+            fill: transparent; /* Unpinned state: transparent fill */
+            stroke: #000000; /* Black stroke */
             stroke-width: 1.5;
             transition: fill 0.2s ease-in-out;
         }
         
         .pin-btn.pinned .pin-icon {
-            fill: #000000;
+            fill: #000000; /* Pinned state: black fill */
+        }
+
+        .add-timezone-form {
+            position: relative;
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
         }
         
-        /* Expand/Collapse animation */
+        /* Dropdown suggestions styling */
+        .suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0; /* Changed to fill container */
+            background-color: #ffffff;
+            border: 2px inset #000000;
+            border-top: none;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 10;
+        }
+        
+        .suggestions div {
+            padding: 0.5rem;
+            cursor: pointer;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        /* New class for the actively selected suggestion */
+        .suggestions div.active-suggestion {
+            background-color: #f0f0f0;
+            border: 1px dashed #000000;
+        }
+
+        .suggestions div:hover {
+            background-color: #f0f0f0;
+        }
+        
+        /* Modal styling */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent overlay */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            font-family: 'Roboto', 'Open Sans', Verdana, sans-serif;
+        }
+        
+        .modal-box {
+            background-color: #ffffff;
+            padding: 2rem;
+            border: 2px outset #cccccc;
+            max-width: 400px;
+            text-align: center;
+        }
+        
+        .modal-buttons {
+            margin-top: 1.5rem;
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+        }
+        
+        /* Responsive design for smaller screens */
+        @media (max-width: 600px) {
+            body {
+                padding: 1rem;
+            }
+
+            .container {
+                padding: 1rem;
+            }
+        }
+        
+        .conversion-section {
+            border: 2px inset #cccccc;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .conversion-section p {
+            margin-top: 0;
+        }
+        
+        .separator {
+            border: 1px solid #000000;
+            margin: 2rem 0;
+        }
+
+        /* Styles for the new conversion feature container */
         #conversionContainer {
             max-height: 0;
             overflow: hidden;
@@ -156,65 +353,127 @@
         }
         
         #conversionContainer.expanded {
-            max-height: 600px;
-            overflow: visible;
+            max-height: 600px; /* A value large enough to hold the content */
+            overflow: visible; /* Important to make dropdown visible */
+        }
+        
+        /* Custom dropdown styles */
+        .custom-dropdown-container {
+            position: relative;
+            width: 100%;
+            box-sizing: border-box;
+            cursor: pointer;
+            z-index: 10; /* Set a high z-index to be on top */
+        }
+        
+        .custom-dropdown-header {
+            height: 2.5rem; /* Standardized height */
+            padding: 0 0.75rem; /* Uniform horizontal padding */
+            font-size: 1rem;
+            border: 2px inset #000000;
+            border-radius: 0;
+            background-color: #ffffff;
+            color: #000000;
+            box-shadow: none;
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .custom-dropdown-header::after {
+            content: '▼';
+            font-size: 0.8rem;
+        }
+        
+        .custom-dropdown-list {
+            position: absolute;
+            top: 100%; /* Change back to top: 100% to drop down */
+            left: 0;
+            right: 0;
+            background-color: #ffffff;
+            border: 2px inset #000000;
+            border-top: none;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 10;
+            display: none;
+        }
+        
+        .custom-dropdown-list-item {
+            padding: 0.5rem;
+            cursor: pointer;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .custom-dropdown-list-item:hover, .custom-dropdown-list-item.selected {
+            background-color: #f0f0f0;
         }
         
     </style>
+    <script>
+        // Use Google Fonts for Roboto and Open Sans
+        const link = document.createElement('link');
+        link.href = 'https://fonts.googleapis.com/css2?family=Open+Sans&family=Roboto:wght@400;700&display=swap';
+        link.rel = 'stylesheet';
+        document.head.appendChild(link);
+    </script>
 </head>
-<body class="bg-gray-200 text-black flex justify-center items-start min-h-screen p-8">
+<body>
 
-    <div class="container w-full max-w-xl p-8">
-        <!-- Header Section -->
-        <header class="header text-center mb-8 p-4">
-            <h1 class="text-3xl m-0 text-black">Simple Timezone Viewer</h1>
+    <div class="container">
+        <header class="header">
+            <h1>Simple Timezone Viewer</h1>
         </header>
 
         <!-- Form for adding a new timezone -->
-        <div class="add-timezone-form relative flex flex-col sm:flex-row gap-4 mb-8">
-            <input type="text" id="timezoneInput" placeholder="Add a city or timezone (e.g., 'Asia/Kolkata')" class="unified-input flex-grow">
-            <div id="suggestions" class="absolute top-full left-0 right-0 bg-white border border-t-0 max-h-48 overflow-y-auto z-10 hidden"></div>
-            <button id="addTimezoneBtn" class="unified-button flex-shrink-0 w-full sm:w-auto">Add</button>
+        <div class="add-timezone-form">
+            <input type="text" id="timezoneInput" placeholder="Add a city or timezone (e.g., 'Asia/Kolkata')">
+            <div id="suggestions" class="suggestions" style="display: none;"></div>
+            <button id="addTimezoneBtn">Add</button>
         </div>
         
-        <div class="message-box p-4 mb-6 hidden" id="messageBox"></div>
+        <div class="message-box" id="messageBox"></div>
 
-        <hr class="separator border-t-2 border-black my-8">
+        <hr class="separator">
         
         <!-- Toggle button for conversion features -->
-        <button class="toggle-btn unified-button w-full mb-6" id="toggleConversionBtn">Show Time Conversion Tools</button>
+        <button class="toggle-btn" id="toggleConversionBtn">Show Time Conversion Tools</button>
 
-        <!-- Conversion Container -->
         <div id="conversionContainer">
-            <div class="conversion-section border-2 border-inset border-gray-300 p-6 mb-8">
-                <p class="mt-0"><strong>Convert time from selected timezone</strong></p>
-                <div class="conversion-form flex flex-col gap-4 mb-0">
-                    <!-- Updated Source Timezone Input -->
-                    <div class="source-input-container">
-                        <input type="text" id="sourceTimezoneInput" placeholder="Select or type a source timezone" class="unified-input">
-                        <div id="sourceSuggestions" class="source-suggestions-list"></div>
+            <!-- Foreign timezone conversion section -->
+            <div class="conversion-section">
+                <p><strong>Convert time from selected timezone</strong></p>
+                <div class="conversion-form" style="margin-bottom: 0;">
+                    <!-- Custom Dropdown for Source Timezone -->
+                    <div class="custom-dropdown-container" id="sourceTimezoneDropdown">
+                        <div class="custom-dropdown-header" id="sourceDropdownHeader">Select a timezone...</div>
+                        <div class="custom-dropdown-list" id="sourceDropdownList"></div>
                     </div>
-                    <input type="text" id="foreignTimeInput" placeholder="e.g., 10:30 AM or 14:00" class="unified-input">
+                    <input type="text" id="foreignTimeInput" placeholder="e.g., 10:30 AM or 14:00">
                 </div>
-                <div class="conversion-btn-group flex flex-col sm:flex-row gap-4 mt-4">
-                    <button id="foreignConvertBtn" class="unified-button w-full">Convert</button>
-                    <button id="foreignClearBtn" class="unified-button w-full">Clear</button>
+                <div class="conversion-btn-group">
+                    <button id="foreignConvertBtn">Convert</button>
+                    <button id="foreignClearBtn">Clear</button>
                 </div>
             </div>
         </div>
         
-        <hr class="separator border-t-2 border-black my-8">
+        <hr class="separator">
 
         <!-- Time format toggle -->
-        <div class="format-toggle text-center mb-4 flex items-center justify-center gap-2">
+        <div class="format-toggle">
             <input type="checkbox" id="hourFormatToggle">
-            <label for="hourFormatToggle" class="text-base cursor-pointer">24-Hour Format</label>
+            <label for="hourFormatToggle">24-Hour Format</label>
+            <svg class="checkmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+                <path d="M14 27l12 12 12-12" stroke="#000" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
         </div>
         
-        <p class="drag-instruction text-center italic text-gray-500 text-sm mb-4">Drag and drop to reorder, or click the pin to pin.</p>
+        <p class="drag-instruction">Drag and drop to reorder, or click the pin to pin.</p>
 
         <!-- List to display added timezones -->
-        <div class="timezone-list flex flex-col gap-4" id="timezoneListContainer">
+        <div class="timezone-list" id="timezoneListContainer">
             <!-- Timezones will be added here dynamically -->
         </div>
     </div>
@@ -232,17 +491,17 @@
             const foreignClearBtn = document.getElementById('foreignClearBtn');
             const toggleConversionBtn = document.getElementById('toggleConversionBtn');
             const conversionContainer = document.getElementById('conversionContainer');
-
-            // NEW: Time conversion input and suggestions
-            const sourceTimezoneInput = document.getElementById('sourceTimezoneInput');
-            const sourceSuggestions = document.getElementById('sourceSuggestions');
+            
+            // Custom dropdown elements
+            const sourceTimezoneDropdown = document.getElementById('sourceTimezoneDropdown');
+            const sourceDropdownHeader = document.getElementById('sourceDropdownHeader');
+            const sourceDropdownList = document.getElementById('sourceDropdownList');
             
             let savedTimezones = [];
             let intervalId = null; 
             let is24HourFormat = false;
             let draggedItem = null;
             let activeSuggestionIndex = -1;
-            let sourceActiveSuggestionIndex = -1; // New index for the source suggestions
             
             // Map of common abbreviations to a representative full timezone name
             const abbreviationMap = {
@@ -276,16 +535,16 @@
             // Function to display messages to the user
             const showMessage = (message, type = 'info') => {
                 messageBox.textContent = message;
-                messageBox.classList.add('show');
+                messageBox.className = `message-box show`;
                 if (type === 'error') {
-                    messageBox.classList.add('text-red-600', 'border-red-600');
-                    messageBox.classList.remove('text-green-600', 'border-green-600');
+                    messageBox.style.color = '#ff0000';
+                    messageBox.style.borderColor = '#ff0000';
                 } else {
-                    messageBox.classList.add('text-green-600', 'border-green-600');
-                    messageBox.classList.remove('text-red-600', 'border-red-600');
+                    messageBox.style.color = '#008000';
+                    messageBox.style.borderColor = '#008000';
                 }
                 setTimeout(() => {
-                    messageBox.classList.remove('show', 'text-red-600', 'border-red-600', 'text-green-600', 'border-green-600');
+                    messageBox.className = 'message-box';
                 }, 3000);
             };
             
@@ -319,13 +578,13 @@
             // Function to show the permission modal
             const showPermissionModal = () => {
                 const modal = document.createElement('div');
-                modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+                modal.className = 'modal-overlay';
                 modal.innerHTML = `
-                    <div class="bg-white p-8 border-2 border-outset border-gray-300 max-w-sm text-center">
+                    <div class="modal-box">
                         <p>This site would like to save your timezones locally in your browser for a better experience. Do you accept?</p>
-                        <div class="flex justify-center gap-4 mt-6">
-                            <button id="acceptBtn" class="unified-button">Accept</button>
-                            <button id="declineBtn" class="unified-button">Decline</button>
+                        <div class="modal-buttons">
+                            <button id="acceptBtn" class="accept-button">Accept</button>
+                            <button id="declineBtn" class="decline-button">Decline</button>
                         </div>
                     </div>
                 `;
@@ -356,6 +615,7 @@
                     hourFormatToggle.checked = is24HourFormat;
                 }
                 renderTimezones();
+                populateCustomDropdown();
             };
 
             // Function to save timezones and preferences to local storage
@@ -386,14 +646,17 @@
                     return;
                 }
 
+                // Check for duplicate labels
                 const timezoneExists = savedTimezones.some(tzObj => tzObj.label.toLowerCase() === timezoneInputVal.toLowerCase());
                 if (timezoneExists) {
                     showMessage(`Timezone for "${timezoneInputVal}" is already added.`, 'error');
                     return;
                 }
                 
+                // Check if the input is a known abbreviation
                 const fullTimezone = abbreviationMap[timezoneInputVal.toUpperCase()] || timezoneInputVal;
                 
+                // Validate if the timezone is valid using a new Date object
                 try {
                     const testDate = new Date();
                     const options = { timeZone: fullTimezone };
@@ -402,9 +665,10 @@
                     savedTimezones.push({ label: timezoneInputVal, timezone: fullTimezone, isPinned: false });
                     saveTimezones();
                     renderTimezones();
+                    populateCustomDropdown();
                     showMessage(`Added timezone for "${timezoneInputVal}".`);
                     timezoneInput.value = '';
-                    suggestionsContainer.classList.add('hidden');
+                    suggestionsContainer.style.display = 'none';
                     activeSuggestionIndex = -1;
                 } catch (e) {
                     showMessage(`Invalid timezone: "${timezoneInputVal}". Please try again.`, 'error');
@@ -418,45 +682,49 @@
                 
                 if (savedTimezones.length === 0) {
                     const noTimezonesMsg = document.createElement('p');
-                    noTimezonesMsg.classList.add('text-center', 'text-gray-500');
+                    noTimezonesMsg.style.cssText = 'text-align: center; color: #555;';
                     noTimezonesMsg.textContent = 'No timezones added yet.';
                     timezoneListContainer.appendChild(noTimezonesMsg);
                 } else {
                     savedTimezones.forEach((tzObj, index) => {
                         const timezoneItem = document.createElement('div');
-                        // Use a single flex container for better alignment
-                        timezoneItem.className = `timezone-item flex justify-between items-center p-4 bg-gray-100 transition-none`;
+                        timezoneItem.className = `timezone-item`;
                         timezoneItem.dataset.label = tzObj.label;
                         timezoneItem.dataset.isPinned = tzObj.isPinned;
                         timezoneItem.draggable = true;
                         
+                        // Create and append inner elements securely
+                        const contentDiv = document.createElement('div');
+                        contentDiv.className = 'timezone-item-content';
+                        
                         const pinBtn = document.createElement('button');
-                        pinBtn.className = `pin-btn flex items-center justify-center w-6 h-6 p-0 border-none bg-transparent cursor-pointer flex-shrink-0 ${tzObj.isPinned ? 'pinned' : ''}`;
+                        pinBtn.className = `pin-btn ${tzObj.isPinned ? 'pinned' : ''}`;
                         pinBtn.setAttribute('aria-label', 'Pin timezone');
                         pinBtn.innerHTML = `
                             <svg class="pin-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
                                 <path d="M14 4h-4v9.64l-2 1.4V16h8v-0.96l-2-1.4V4zM12 2C9.24 2 7 4.24 7 7c0 1.2.4 2.3 1.08 3.2L5 13.91V22h14v-8.09L15.92 10.2c.68-.9 1.08-2 1.08-3.2C17 4.24 14.76 2 12 2z"/>
                             </svg>
                         `;
-
+                        contentDiv.appendChild(pinBtn);
+                        
                         const textDiv = document.createElement('div');
-                        textDiv.className = 'timezone-item-text flex-grow flex-shrink min-w-0 pr-4';
+                        textDiv.className = 'timezone-item-text';
                         const strongTag = document.createElement('strong');
                         strongTag.textContent = tzObj.label;
                         const pTag = document.createElement('p');
                         pTag.appendChild(strongTag);
-                        pTag.innerHTML += `<br><span class="time text-lg font-bold" data-timezone="${tzObj.timezone}"></span>`;
+                        pTag.innerHTML += `<br><span class="time" data-timezone="${tzObj.timezone}"></span>`;
                         textDiv.appendChild(pTag);
+                        contentDiv.appendChild(textDiv);
+                        
+                        timezoneItem.appendChild(contentDiv);
 
                         const removeBtn = document.createElement('button');
-                        removeBtn.className = 'remove-btn unified-button flex-shrink-0';
+                        removeBtn.className = 'remove-btn';
                         removeBtn.textContent = 'Remove';
-                        
-                        // Append elements directly to the timezoneItem
-                        timezoneItem.appendChild(pinBtn);
-                        timezoneItem.appendChild(textDiv);
                         timezoneItem.appendChild(removeBtn);
 
+                        // Add event listeners for the buttons
                         removeBtn.addEventListener('click', () => removeTimezone(tzObj.label));
                         pinBtn.addEventListener('click', () => togglePin(tzObj.label));
 
@@ -473,51 +741,60 @@
                     tzObj.isPinned = !tzObj.isPinned;
                     saveTimezones();
                     renderTimezones();
+                    populateCustomDropdown();
                 }
             };
             
             // Function to update the time for each timezone
             const updateTimes = (inputDate = null) => {
-                const timeElements = document.querySelectorAll('.timezone-item .time');
-                const now = inputDate || new Date();
-                timeElements.forEach(el => {
-                    const tz = el.getAttribute('data-timezone');
-                    try {
-                        const options = {
-                            hour: '2-digit', minute: '2-digit', second: '2-digit',
-                            timeZoneName: 'short', timeZone: tz, hour12: !is24HourFormat
-                        };
-                        const timeString = new Intl.DateTimeFormat('en-US', options).format(now);
-                        el.textContent = timeString;
-                        el.style.color = '';
-                    } catch (e) {
-                        el.textContent = 'Invalid Timezone';
-                        el.style.color = 'red';
-                    }
-                });
+                if (inputDate) {
+                    const timeElements = document.querySelectorAll('.timezone-item .time');
+                    timeElements.forEach(el => {
+                        const tz = el.getAttribute('data-timezone');
+                        try {
+                            const options = {
+                                hour: '2-digit', minute: '2-digit', second: '2-digit',
+                                timeZoneName: 'short', timeZone: tz, hour12: !is24HourFormat
+                            };
+                            const timeString = new Intl.DateTimeFormat('en-US', options).format(inputDate);
+                            el.textContent = timeString;
+                            el.style.color = '';
+                        } catch (e) {
+                            el.textContent = 'Invalid Timezone';
+                            el.style.color = 'red';
+                        }
+                    });
+                } else {
+                    const timeElements = document.querySelectorAll('.timezone-item .time');
+                    const now = new Date();
+                    timeElements.forEach(el => {
+                        const tz = el.getAttribute('data-timezone');
+                        try {
+                            const options = {
+                                hour: '2-digit', minute: '2-digit', second: '2-digit',
+                                timeZoneName: 'short', timeZone: tz, hour12: !is24HourFormat
+                            };
+                            const timeString = new Intl.DateTimeFormat('en-US', options).format(now);
+                            el.textContent = timeString;
+                            el.style.color = '';
+                        } catch (e) {
+                            el.textContent = 'Invalid Timezone';
+                            el.style.color = 'red';
+                        }
+                    });
+                }
             };
             
             // Function to parse a foreign time and convert it to all timezones
             const convertForeignTime = () => {
                 const foreignTimeStr = foreignTimeInput.value.trim();
-                const sourceTzLabel = sourceTimezoneInput.value.trim();
+                const sourceTz = sourceDropdownHeader.dataset.value;
                 
-                if (!foreignTimeStr || !sourceTzLabel) {
+                if (!foreignTimeStr || sourceTz === "prompt") {
                     showMessage('Please enter a time and select a source timezone.', 'error');
                     return;
                 }
                 
-                // Find the full timezone name from the saved label
-                const sourceTz = savedTimezones.find(tz => tz.label === sourceTzLabel)?.timezone || sourceTzLabel;
-
-                // Check for a valid timezone before proceeding
-                try {
-                    Intl.DateTimeFormat('en-US', { timeZone: sourceTz }).format(new Date());
-                } catch (e) {
-                    showMessage('Invalid source timezone selected.', 'error');
-                    return;
-                }
-
                 if (intervalId) {
                     clearInterval(intervalId);
                 }
@@ -572,6 +849,7 @@
                 savedTimezones = savedTimezones.filter(tzObj => tzObj.label !== labelToRemove);
                 saveTimezones();
                 renderTimezones();
+                populateCustomDropdown();
                 if (foreignTimeInput.value.trim() !== '') {
                     convertForeignTime();
                 } else {
@@ -582,7 +860,9 @@
             // Drag and Drop Logic
             timezoneListContainer.addEventListener('dragstart', (e) => {
                 draggedItem = e.target.closest('.timezone-item');
-                if (!draggedItem) return;
+                if (!draggedItem) {
+                    return;
+                }
                 e.dataTransfer.effectAllowed = 'move';
                 e.dataTransfer.setData('text/plain', draggedItem.dataset.label);
                 setTimeout(() => {
@@ -599,7 +879,9 @@
                     const rect = target.getBoundingClientRect();
                     const next = (e.clientY - rect.top) / (rect.bottom - rect.top) > .5;
                     
-                    if (draggedItem.dataset.isPinned !== target.dataset.isPinned) return;
+                    if (draggedItem.dataset.isPinned !== target.dataset.isPinned) {
+                        return;
+                    }
 
                     if (next) {
                         list.insertBefore(draggedItem, target.nextElementSibling);
@@ -620,7 +902,7 @@
             // Function to update the order in the savedTimezones array based on the DOM
             const updateSavedOrder = () => {
                 const itemsInDom = Array.from(timezoneListContainer.children).filter(el => el.classList.contains('timezone-item'));
-                const newOrder = itemsInDom.map(label => savedTimezones.find(tz => tz.label === label));
+                const newOrder = itemsInDom.map(item => item.dataset.label);
                 
                 const newSavedTimezones = newOrder.map(label => savedTimezones.find(tz => tz.label === label));
                 savedTimezones = newSavedTimezones;
@@ -645,13 +927,13 @@
                     e.preventDefault();
                     if (suggestions.length > 0) {
                         activeSuggestionIndex = (activeSuggestionIndex + 1) % suggestions.length;
-                        updateActiveSuggestion(suggestions, activeSuggestionIndex);
+                        updateActiveSuggestion();
                     }
                 } else if (e.key === 'ArrowUp') {
                     e.preventDefault();
                     if (suggestions.length > 0) {
                         activeSuggestionIndex = (activeSuggestionIndex - 1 + suggestions.length) % suggestions.length;
-                        updateActiveSuggestion(suggestions, activeSuggestionIndex);
+                        updateActiveSuggestion();
                     }
                 } else if (e.key === 'Enter') {
                     e.preventDefault();
@@ -665,22 +947,25 @@
                         addTimezone(valueToAdd);
                     }
                 } else if (e.key === 'Escape') {
-                    suggestionsContainer.classList.add('hidden');
+                    suggestionsContainer.style.display = 'none';
                     activeSuggestionIndex = -1;
                 }
             });
 
-            const updateActiveSuggestion = (suggestions, index) => {
-                suggestions.forEach((s, i) => {
-                    if (i === index) {
-                        s.classList.add('bg-gray-200', 'border', 'border-dashed', 'border-black');
+            // Function to update the visual highlighting of the active suggestion
+            const updateActiveSuggestion = () => {
+                const suggestions = suggestionsContainer.querySelectorAll('div');
+                suggestions.forEach((s, index) => {
+                    if (index === activeSuggestionIndex) {
+                        s.classList.add('active-suggestion');
                         s.scrollIntoView({ block: 'nearest' });
                     } else {
-                        s.classList.remove('bg-gray-200', 'border', 'border-dashed', 'border-black');
+                        s.classList.remove('active-suggestion');
                     }
                 });
             };
 
+            // Event listener for suggestions on input
             timezoneInput.addEventListener('input', () => {
                 const query = timezoneInput.value.trim().toLowerCase();
                 suggestionsContainer.innerHTML = '';
@@ -690,11 +975,10 @@
                     const filteredTimezones = allTimezones.filter(tz => tz.toLowerCase().includes(query));
                     
                     if (filteredTimezones.length > 0) {
-                        suggestionsContainer.classList.remove('hidden');
+                        suggestionsContainer.style.display = 'block';
                         filteredTimezones.slice(0, 10).forEach(tz => {
                             const suggestionItem = document.createElement('div');
                             suggestionItem.textContent = tz;
-                            suggestionItem.classList.add('p-2', 'cursor-pointer', 'border-b', 'border-gray-300');
                             suggestionItem.addEventListener('click', () => {
                                 timezoneInput.value = tz;
                                 addTimezone(tz);
@@ -704,101 +988,96 @@
                         
                         if (filteredTimezones.length === 1) {
                             activeSuggestionIndex = 0;
-                            updateActiveSuggestion(suggestionsContainer.querySelectorAll('div'), activeSuggestionIndex);
+                            updateActiveSuggestion();
                         }
                         
                     } else {
-                        suggestionsContainer.classList.add('hidden');
+                        suggestionsContainer.style.display = 'none';
                     }
                 } else {
-                    suggestionsContainer.classList.add('hidden');
+                    suggestionsContainer.style.display = 'none';
                 }
             });
             
+            // Hide suggestions when clicking outside
             document.addEventListener('click', (e) => {
                 if (!addTimezoneBtn.contains(e.target) && !timezoneInput.contains(e.target) && !suggestionsContainer.contains(e.target)) {
-                    suggestionsContainer.classList.add('hidden');
+                    suggestionsContainer.style.display = 'none';
                     activeSuggestionIndex = -1;
                 }
-                if (!sourceTimezoneInput.contains(e.target) && !sourceSuggestions.contains(e.target)) {
-                    sourceSuggestions.classList.remove('show');
-                    sourceActiveSuggestionIndex = -1;
-                }
             });
-
-            // NEW: Logic for the source timezone input and suggestions
-            const populateSourceSuggestions = (query = '') => {
-                sourceSuggestions.innerHTML = '';
+            
+            // New functions for the custom dropdown
+            const populateCustomDropdown = () => {
+                sourceDropdownList.innerHTML = '';
                 
-                const allSourceTimezones = [
-                    { label: `Local Timezone (${Intl.DateTimeFormat().resolvedOptions().timeZone})`, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone },
-                    ...savedTimezones
-                ];
+                const localTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+                const localOption = document.createElement('div');
+                localOption.className = 'custom-dropdown-list-item';
+                localOption.textContent = `Local Timezone (${localTz})`;
+                localOption.dataset.value = localTz;
+                sourceDropdownList.appendChild(localOption);
                 
-                const filtered = allSourceTimezones.filter(tz => tz.label.toLowerCase().includes(query.toLowerCase()));
+                savedTimezones.forEach(tzObj => {
+                    const option = document.createElement('div');
+                    option.className = 'custom-dropdown-list-item';
+                    option.textContent = tzObj.label;
+                    option.dataset.value = tzObj.timezone;
+                    sourceDropdownList.appendChild(option);
+                });
                 
-                if (filtered.length > 0) {
-                    sourceSuggestions.classList.add('show');
-                    filtered.slice(0, 10).forEach(tz => {
-                        const suggestionItem = document.createElement('div');
-                        suggestionItem.textContent = tz.label;
-                        suggestionItem.dataset.timezone = tz.timezone;
-                        suggestionItem.classList.add('source-suggestions-item');
-                        suggestionItem.addEventListener('click', () => {
-                            sourceTimezoneInput.value = tz.label;
-                            sourceSuggestions.classList.remove('show');
-                        });
-                        sourceSuggestions.appendChild(suggestionItem);
-                    });
-                     // Highlight the top item when suggestions are populated
-                    sourceActiveSuggestionIndex = 0;
-                    const suggestions = sourceSuggestions.querySelectorAll('.source-suggestions-item');
-                    updateActiveSuggestion(suggestions, sourceActiveSuggestionIndex);
-                } else {
-                    sourceSuggestions.classList.remove('show');
-                }
+                // Set the default selected value
+                sourceDropdownHeader.textContent = 'Select a timezone...';
+                sourceDropdownHeader.dataset.value = 'prompt';
             };
-
-            // Event listener for input
-            sourceTimezoneInput.addEventListener('input', () => {
-                populateSourceSuggestions(sourceTimezoneInput.value.trim());
+            
+            // Event listener to toggle the custom dropdown list
+            sourceDropdownHeader.addEventListener('click', () => {
+                sourceDropdownList.style.display = sourceDropdownList.style.display === 'block' ? 'none' : 'block';
             });
-
-            // Event listener for click (new)
-            sourceTimezoneInput.addEventListener('click', () => {
-                populateSourceSuggestions(sourceTimezoneInput.value.trim());
-            });
-
-            sourceTimezoneInput.addEventListener('keydown', (e) => {
-                const suggestions = sourceSuggestions.querySelectorAll('.source-suggestions-item');
-                if (suggestions.length === 0) return;
-
-                if (e.key === 'ArrowDown') {
-                    e.preventDefault();
-                    sourceActiveSuggestionIndex = (sourceActiveSuggestionIndex + 1) % suggestions.length;
-                    updateActiveSuggestion(suggestions, sourceActiveSuggestionIndex);
-                } else if (e.key === 'ArrowUp') {
-                    e.preventDefault();
-                    sourceActiveSuggestionIndex = (sourceActiveSuggestionIndex - 1 + suggestions.length) % suggestions.length;
-                    updateActiveSuggestion(suggestions, sourceActiveSuggestionIndex);
-                } else if (e.key === 'Enter') {
-                    e.preventDefault();
-                    if (sourceActiveSuggestionIndex !== -1) {
-                        const selectedText = suggestions[sourceActiveSuggestionIndex].textContent;
-                        sourceTimezoneInput.value = selectedText;
-                        sourceSuggestions.classList.remove('show');
+            
+            // Event listener for selecting an item from the custom dropdown list
+            sourceDropdownList.addEventListener('click', (e) => {
+                const selectedItem = e.target.closest('.custom-dropdown-list-item');
+                if (selectedItem) {
+                    const selectedValue = selectedItem.dataset.value;
+                    const selectedText = selectedItem.textContent;
+                    
+                    sourceDropdownHeader.textContent = selectedText;
+                    sourceDropdownHeader.dataset.value = selectedValue;
+                    
+                    // Add a 'selected' class to the active item
+                    const currentSelected = sourceDropdownList.querySelector('.selected');
+                    if (currentSelected) {
+                        currentSelected.classList.remove('selected');
                     }
+                    selectedItem.classList.add('selected');
+                    
+                    sourceDropdownList.style.display = 'none';
                 }
             });
-
+            
+            // Close dropdown if clicked outside
+            document.addEventListener('click', (e) => {
+                if (!sourceTimezoneDropdown.contains(e.target)) {
+                    sourceDropdownList.style.display = 'none';
+                }
+            });
+            
+            // Event listeners for the foreign conversion button
             foreignConvertBtn.addEventListener('click', () => {
                 convertForeignTime();
             });
             
+            // Event listener for the foreign clear button
             foreignClearBtn.addEventListener('click', () => {
                 foreignTimeInput.value = '';
-                sourceTimezoneInput.value = '';
-                sourceSuggestions.classList.remove('show');
+                sourceDropdownHeader.textContent = 'Select a timezone...';
+                sourceDropdownHeader.dataset.value = 'prompt';
+                const currentSelected = sourceDropdownList.querySelector('.selected');
+                if (currentSelected) {
+                        currentSelected.classList.remove('selected');
+                }
                 updateTimes();
                 if (intervalId) {
                     clearInterval(intervalId);
@@ -806,11 +1085,13 @@
                 intervalId = setInterval(() => updateTimes(), 1000);
             });
 
+            // Event listener for the hour format toggle
             hourFormatToggle.addEventListener('change', (e) => {
                 is24HourFormat = e.target.checked;
                 saveTimezones();
             });
             
+            // Event listener for the toggle button
             toggleConversionBtn.addEventListener('click', () => {
                 conversionContainer.classList.toggle('expanded');
                 if (conversionContainer.classList.contains('expanded')) {
@@ -820,8 +1101,10 @@
                 }
             });
 
+            // Initial setup
             init();
 
+            // Start the live clock once the page is loaded and timezones are rendered
             intervalId = setInterval(() => updateTimes(), 1000);
         });
     </script>
